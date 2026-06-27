@@ -781,9 +781,15 @@ body {
   padding: 10px 18px 12px;
   border-top: 1px solid #e6eef9;
   background: rgba(247, 251, 255, 0.9);
+  cursor: grab;
   scrollbar-width: thin;
   scroll-padding-inline: 18px;
+  touch-action: pan-y;
   -webkit-overflow-scrolling: touch;
+}
+
+.quick-prompts.dragging {
+  cursor: grabbing;
 }
 
 .quick-prompts button {
@@ -796,6 +802,7 @@ body {
   border-radius: 999px;
   font-size: 13px;
   font-weight: 900;
+  user-select: none;
   white-space: nowrap;
 }
 

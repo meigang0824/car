@@ -517,6 +517,13 @@ function AiGuide({ vehicle, workflowBinding }) {
     "减震怎么样？",
   ];
   const chatLogRef = useRef(null);
+  const quickPromptsRef = useRef(null);
+  const quickPromptDragRef = useRef({
+    active: false,
+    startX: 0,
+    scrollLeft: 0,
+    blockClick: false,
+  });
   const recognitionRef = useRef(null);
   const voiceModeRef = useRef(false);
   const isAskingRef = useRef(false);
@@ -1030,6 +1037,49 @@ function AiGuide({ vehicle, workflowBinding }) {
     return result.answer;
   };
 
+  const startQuickPromptDrag = (event) => {
+    const target = quickPromptsRef.current;
+    if (!target) return;
+    quickPromptDragRef.current = {
+      active: true,
+      startX: event.clientX,
+      scrollLeft: target.scrollLeft,
+      blockClick: false,
+    };
+    event.currentTarget.classList.add("dragging");
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+  };
+
+  const moveQuickPromptDrag = (event) => {
+    const target = quickPromptsRef.current;
+    const drag = quickPromptDragRef.current;
+    if (!target || !drag.active) return;
+    const deltaX = event.clientX - drag.startX;
+    if (Math.abs(deltaX) > 4) {
+      drag.blockClick = true;
+      target.scrollLeft = drag.scrollLeft - deltaX;
+      event.preventDefault();
+    }
+  };
+
+  const endQuickPromptDrag = (event) => {
+    quickPromptDragRef.current.active = false;
+    event.currentTarget.classList.remove("dragging");
+    event.currentTarget.releasePointerCapture?.(event.pointerId);
+  };
+
+  const clickQuickPrompt = (event, question) => {
+    if (quickPromptDragRef.current.blockClick) {
+      event.preventDefault();
+      event.stopPropagation();
+      window.setTimeout(() => {
+        quickPromptDragRef.current.blockClick = false;
+      }, 0);
+      return;
+    }
+    void ask(question);
+  };
+
   return (
     <aside className="ai-panel glass-panel" data-vehicle-id={vehicle.id}>
       <div className="ai-head">
@@ -1058,9 +1108,27 @@ function AiGuide({ vehicle, workflowBinding }) {
           </div>
         ))}
       </div>
-      <div className="quick-prompts" aria-label="常用问题">
+      <div
+        className="quick-prompts"
+        ref={quickPromptsRef}
+        aria-label="常用问题"
+        onPointerDown={startQuickPromptDrag}
+        onPointerMove={moveQuickPromptDrag}
+        onPointerUp={endQuickPromptDrag}
+        onPointerCancel={endQuickPromptDrag}
+        onWheel={(event) => {
+          if (Math.abs(event.deltaY) > Math.abs(event.deltaX)) {
+            event.currentTarget.scrollLeft += event.deltaY;
+          }
+        }}
+      >
         {quickQuestions.map((question) => (
-          <button key={question} onClick={() => ask(question)} disabled={isAsking}>
+          <button
+            key={question}
+            onClick={(event) => clickQuickPrompt(event, question)}
+            onDragStart={(event) => event.preventDefault()}
+            disabled={isAsking}
+          >
             {question}
           </button>
         ))}
