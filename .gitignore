@@ -1,0 +1,8 @@
+.env
+data/dify-workflows.json
+data/chat-history.json
+data/backups
+node_modules
+dist
+.npm-cache
+.DS_Store

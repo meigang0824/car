@@ -1,0 +1,488 @@
+{
+  "updatedAt": "2026-06-26T09:06:32.030Z",
+  "vehicles": [
+    {
+      "id": "tiger",
+      "name": "星瑞Plus",
+      "series": "旗舰款封闭式休闲三轮",
+      "tags": [
+        "热销款",
+        "新品"
+      ],
+      "status": "已发布",
+      "color": "#b73a3a",
+      "price": "8000-12000元(视配置而定)",
+      "slogan": "72V | 800W变频静音无刷电机 | 25km/h(新国标限速) | 旗舰款封闭式休闲三轮",
+      "specs": [
+        [
+          "电压",
+          "72V"
+        ],
+        [
+          "控制器",
+          "72V 15管 矢量正弦波控制器"
+        ],
+        [
+          "减震",
+          "32管液压减震 / 后置弹簧减震"
+        ],
+        [
+          "轮距",
+          "约700mm"
+        ],
+        [
+          "电机",
+          "72V800W变频静音无刷电机"
+        ],
+        [
+          "轮胎",
+          "90/90-12真空胎"
+        ],
+        [
+          "速度",
+          "25km/h(新国标限速)"
+        ],
+        [
+          "轴距",
+          "约1300mm"
+        ],
+        [
+          "仪表",
+          "高清彩色液晶仪表"
+        ],
+        [
+          "大灯",
+          "LED透镜大灯"
+        ],
+        [
+          "重量",
+          "300kg最大载重"
+        ],
+        [
+          "尺寸",
+          "1850mm*850mm*1180mm"
+        ]
+      ],
+      "inventory": 168,
+      "dealerPolicy": "参考价格：8000-12000元(视配置而定)。具体成交价按门店配置、电池规格和当地政策确认。",
+      "images": [
+        {
+          "label": "整车侧面",
+          "src": "/assets/products/xingrui-01.jpg"
+        },
+        {
+          "label": "侧面展示",
+          "src": "/assets/products/xingrui-02.jpg"
+        },
+        {
+          "label": "前侧视角",
+          "src": "/assets/products/xingrui-03.jpg"
+        },
+        {
+          "label": "座椅细节",
+          "src": "/assets/products/xingrui-04.jpg"
+        },
+        {
+          "label": "正面展示",
+          "src": "/assets/products/xingrui-05.jpg"
+        },
+        {
+          "label": "前脸细节",
+          "src": "/assets/products/xingrui-06.jpg"
+        },
+        {
+          "label": "前轮细节",
+          "src": "/assets/products/xingrui-07.jpg"
+        },
+        {
+          "label": "中控细节",
+          "src": "/assets/products/xingrui-08.jpg"
+        }
+      ]
+    },
+    {
+      "id": "q7",
+      "name": "陆尚",
+      "series": "时尚款半封闭休闲三轮",
+      "tags": [
+        "耐用款"
+      ],
+      "status": "已发布",
+      "color": "#8a72cc",
+      "price": "5000-8000元(视配置而定)",
+      "slogan": "60V | 600W超静音无刷电机 | 25km/h(新国标限速) | 时尚款半封闭休闲三轮",
+      "specs": [
+        [
+          "电压",
+          "60V"
+        ],
+        [
+          "控制器",
+          "60V 12管 正弦波控制器"
+        ],
+        [
+          "减震",
+          "27管液压减震 / 后置板簧减震"
+        ],
+        [
+          "轮距",
+          ""
+        ],
+        [
+          "电机",
+          "60V600W超静音无刷电机"
+        ],
+        [
+          "轮胎",
+          "300-10真空胎"
+        ],
+        [
+          "速度",
+          "25km/h(新国标限速)"
+        ],
+        [
+          "轴距",
+          ""
+        ],
+        [
+          "仪表",
+          "LED数字仪表"
+        ],
+        [
+          "大灯",
+          "LED高亮大灯"
+        ],
+        [
+          "重量",
+          "250kg最大载重"
+        ],
+        [
+          "尺寸",
+          "1720mm*780mm*1150mm"
+        ]
+      ],
+      "inventory": 94,
+      "dealerPolicy": "参考价格：5000-8000元(视配置而定)。具体成交价按门店配置、电池规格和当地政策确认。",
+      "images": [
+        {
+          "label": "整车侧面",
+          "src": "/assets/products/lushang-01.jpg"
+        },
+        {
+          "label": "右侧展示",
+          "src": "/assets/products/lushang-02.jpg"
+        },
+        {
+          "label": "前侧展示",
+          "src": "/assets/products/lushang-03.jpg"
+        },
+        {
+          "label": "后侧展示",
+          "src": "/assets/products/lushang-04.jpg"
+        },
+        {
+          "label": "车身侧面",
+          "src": "/assets/products/lushang-05.jpg"
+        },
+        {
+          "label": "轮胎细节",
+          "src": "/assets/products/lushang-06.jpg"
+        },
+        {
+          "label": "中控细节",
+          "src": "/assets/products/lushang-07.jpg"
+        },
+        {
+          "label": "驾驶舱",
+          "src": "/assets/products/lushang-08.jpg"
+        }
+      ]
+    },
+    {
+      "id": "a8",
+      "name": "CL9",
+      "series": "经济款基础代步三轮",
+      "tags": [
+        "利润款"
+      ],
+      "status": "已发布",
+      "color": "#d8c7a6",
+      "price": "2500-4000元(视配置而定)",
+      "slogan": "48V | 500W普通无刷电机 | 22km/h(新国标限速) | 经济款基础代步三轮",
+      "specs": [
+        [
+          "电压",
+          "48V"
+        ],
+        [
+          "控制器",
+          "48V 9管 方波控制器"
+        ],
+        [
+          "减震",
+          "25管弹簧减震 / 后置弹簧减震"
+        ],
+        [
+          "轮距",
+          ""
+        ],
+        [
+          "电机",
+          "48V500W普通无刷电机"
+        ],
+        [
+          "轮胎",
+          "300-8真空胎"
+        ],
+        [
+          "速度",
+          "22km/h(新国标限速)"
+        ],
+        [
+          "轴距",
+          ""
+        ],
+        [
+          "仪表",
+          "指针式仪表"
+        ],
+        [
+          "大灯",
+          "卤素大灯"
+        ],
+        [
+          "重量",
+          "180kg最大载重"
+        ],
+        [
+          "尺寸",
+          "1620mm*750mm*1100mm"
+        ]
+      ],
+      "inventory": 52,
+      "dealerPolicy": "参考价格：2500-4000元(视配置而定)。具体成交价按门店配置、电池规格和当地政策确认。",
+      "images": [
+        {
+          "label": "海报主图",
+          "src": "/assets/products/cl9-01.jpg"
+        },
+        {
+          "label": "整车侧面",
+          "src": "/assets/products/cl9-02.jpg"
+        },
+        {
+          "label": "后视图",
+          "src": "/assets/products/cl9-03.jpg"
+        },
+        {
+          "label": "把手细节",
+          "src": "/assets/products/cl9-04.jpg"
+        },
+        {
+          "label": "座椅扶手",
+          "src": "/assets/products/cl9-05.jpg"
+        },
+        {
+          "label": "充电口",
+          "src": "/assets/products/cl9-06.jpg"
+        },
+        {
+          "label": "前轮细节",
+          "src": "/assets/products/cl9-07.jpg"
+        },
+        {
+          "label": "储物格",
+          "src": "/assets/products/cl9-08.jpg"
+        }
+      ]
+    },
+    {
+      "id": "t5",
+      "name": "H6",
+      "series": "实用款货运休闲两用三轮",
+      "tags": [
+        "舒适款"
+      ],
+      "status": "已发布",
+      "color": "#b8d7da",
+      "price": "6000-9000元(视配置而定)",
+      "slogan": "60V | 800W差速电机 | 25km/h(新国标限速) | 实用款货运休闲两用三轮",
+      "specs": [
+        [
+          "电压",
+          "60V"
+        ],
+        [
+          "控制器",
+          "60V 15管 正弦波控制器"
+        ],
+        [
+          "减震",
+          "32管液压减震 / 后置加粗板簧"
+        ],
+        [
+          "轮距",
+          ""
+        ],
+        [
+          "电机",
+          "60V800W差速电机"
+        ],
+        [
+          "轮胎",
+          "350-12加厚真空胎"
+        ],
+        [
+          "速度",
+          "25km/h(新国标限速)"
+        ],
+        [
+          "轴距",
+          ""
+        ],
+        [
+          "仪表",
+          "LED数字仪表"
+        ],
+        [
+          "大灯",
+          "LED高亮大灯"
+        ],
+        [
+          "重量",
+          "400kg最大载重"
+        ],
+        [
+          "尺寸",
+          "1950mm*900mm*1200mm"
+        ]
+      ],
+      "inventory": 213,
+      "dealerPolicy": "参考价格：6000-9000元(视配置而定)。具体成交价按门店配置、电池规格和当地政策确认。",
+      "images": [
+        {
+          "label": "整车侧面",
+          "src": "/assets/products/h6-01.jpg"
+        },
+        {
+          "label": "后侧视角",
+          "src": "/assets/products/h6-02.jpg"
+        },
+        {
+          "label": "正面展示",
+          "src": "/assets/products/h6-03.jpg"
+        },
+        {
+          "label": "前侧视角",
+          "src": "/assets/products/h6-04.jpg"
+        },
+        {
+          "label": "双座展示",
+          "src": "/assets/products/h6-05.jpg"
+        },
+        {
+          "label": "海报主图",
+          "src": "/assets/products/h6-06.jpg"
+        },
+        {
+          "label": "米色款",
+          "src": "/assets/products/h6-07.jpg"
+        },
+        {
+          "label": "红色款",
+          "src": "/assets/products/h6-08.jpg"
+        }
+      ]
+    },
+    {
+      "id": "k3",
+      "name": "乐萌",
+      "series": "迷你款休闲三轮",
+      "tags": [
+        "活动款"
+      ],
+      "status": "已发布",
+      "color": "#f5a9be",
+      "price": "3000-5000元(视配置而定)",
+      "slogan": "48V | 500W超静音无刷电机 | 25km/h(新国标限速) | 迷你款休闲三轮",
+      "specs": [
+        [
+          "电压",
+          "48V"
+        ],
+        [
+          "控制器",
+          "48V 12管 无线模块正弦波"
+        ],
+        [
+          "减震",
+          "27管液压减震 / 弹簧减震"
+        ],
+        [
+          "轮距",
+          "610mm"
+        ],
+        [
+          "电机",
+          "48V500W超静音无刷电机"
+        ],
+        [
+          "轮胎",
+          "300-8真空胎"
+        ],
+        [
+          "速度",
+          "25km/h(新国标限速)"
+        ],
+        [
+          "轴距",
+          "1120mm"
+        ],
+        [
+          "仪表",
+          "液晶仪表"
+        ],
+        [
+          "大灯",
+          "LED高亮大灯"
+        ],
+        [
+          "重量",
+          "200kg最大载重"
+        ],
+        [
+          "尺寸",
+          "1570mm*720mm*1060mm"
+        ]
+      ],
+      "inventory": 87,
+      "dealerPolicy": "参考价格：3000-5000元(视配置而定)。具体成交价按门店配置、电池规格和当地政策确认。",
+      "images": [
+        {
+          "label": "粉色款",
+          "src": "/assets/products/lemeng-01.jpg"
+        },
+        {
+          "label": "红色款",
+          "src": "/assets/products/lemeng-02.jpg"
+        },
+        {
+          "label": "紫色款",
+          "src": "/assets/products/lemeng-03.jpg"
+        },
+        {
+          "label": "金色款",
+          "src": "/assets/products/lemeng-04.jpg"
+        },
+        {
+          "label": "绿色款",
+          "src": "/assets/products/lemeng-05.jpg"
+        },
+        {
+          "label": "海报主图",
+          "src": "/assets/products/lemeng-06.jpg"
+        }
+      ]
+    }
+  ]
+}

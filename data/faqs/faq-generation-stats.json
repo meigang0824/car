@@ -1,0 +1,49 @@
+{
+  "generatedAt": "2026-06-26T07:52:15.461Z",
+  "source": "data/catalog.json",
+  "note": "approved style, not synced to Dify",
+  "vehicles": [
+    {
+      "id": "tiger",
+      "name": "星瑞Plus",
+      "questions": 100,
+      "answers": 100,
+      "dataFile": "/Users/letwx/Documents/Codex/2026-06-24/du-qu/work/ev-trike-platform/data/faqs/tiger_星瑞Plus_FAQ.txt",
+      "docsFile": "/Users/letwx/Documents/Codex/2026-06-24/du-qu/work/ev-trike-platform/docs/faqs/tiger_星瑞Plus_FAQ.md"
+    },
+    {
+      "id": "q7",
+      "name": "陆尚",
+      "questions": 100,
+      "answers": 100,
+      "dataFile": "/Users/letwx/Documents/Codex/2026-06-24/du-qu/work/ev-trike-platform/data/faqs/q7_陆尚_FAQ.txt",
+      "docsFile": "/Users/letwx/Documents/Codex/2026-06-24/du-qu/work/ev-trike-platform/docs/faqs/q7_陆尚_FAQ.md"
+    },
+    {
+      "id": "a8",
+      "name": "CL9",
+      "questions": 100,
+      "answers": 100,
+      "dataFile": "/Users/letwx/Documents/Codex/2026-06-24/du-qu/work/ev-trike-platform/data/faqs/a8_CL9_FAQ.txt",
+      "docsFile": "/Users/letwx/Documents/Codex/2026-06-24/du-qu/work/ev-trike-platform/docs/faqs/a8_CL9_FAQ.md"
+    },
+    {
+      "id": "t5",
+      "name": "H6",
+      "questions": 100,
+      "answers": 100,
+      "dataFile": "/Users/letwx/Documents/Codex/2026-06-24/du-qu/work/ev-trike-platform/data/faqs/t5_H6_FAQ.txt",
+      "docsFile": "/Users/letwx/Documents/Codex/2026-06-24/du-qu/work/ev-trike-platform/docs/faqs/t5_H6_FAQ.md"
+    },
+    {
+      "id": "k3",
+      "name": "乐萌",
+      "questions": 100,
+      "answers": 100,
+      "dataFile": "/Users/letwx/Documents/Codex/2026-06-24/du-qu/work/ev-trike-platform/data/faqs/k3_乐萌_FAQ.txt",
+      "docsFile": "/Users/letwx/Documents/Codex/2026-06-24/du-qu/work/ev-trike-platform/docs/faqs/k3_乐萌_FAQ.md"
+    }
+  ],
+  "totalQuestions": 500,
+  "totalAnswers": 500
+}
