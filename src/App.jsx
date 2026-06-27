@@ -669,8 +669,8 @@ function AiGuide({ vehicle, workflowBinding }) {
       { title: "接收问题", detail: question, status: pending ? "active" : "done" },
       { title: "定位车型", detail: `${vehicle.name} · ${vehicle.series}`, status: pending ? "active" : "done" },
       {
-        title: workflowBinding?.configured ? "调用Dify智能客服工作流" : "使用本地产品资料",
-        detail: workflowBinding?.configured ? normalizeWorkflowName(workflowBinding.appName) : "未配置 API Key，使用本地参数",
+        title: workflowBinding?.configured ? "调用智能客服服务" : "使用本地产品资料",
+        detail: workflowBinding?.configured ? normalizeWorkflowName(workflowBinding.appName) : "未配置访问密钥，使用本地参数",
         status: pending ? "active" : "done",
       },
     {
@@ -755,7 +755,7 @@ function AiGuide({ vehicle, workflowBinding }) {
         conversationId: "",
         trace: [
           ...localTrace(question),
-          { title: "Dify 请求失败", detail: error.message, status: "done" },
+          { title: "智能客服请求失败", detail: error.message, status: "done" },
         ],
       };
     }
@@ -1290,7 +1290,7 @@ function ParameterEditor({ vehicle, updateVehicle, workflowBinding, updateDifyWo
     { id: "basic", label: "基础信息" },
     { id: "images", label: "产品图片" },
     { id: "specs", label: "参数项" },
-    { id: "workflow", label: "Dify 工作流" },
+    { id: "workflow", label: "智能客服" },
   ];
   const [imageDraft, setImageDraft] = useState({ label: "产品图", src: "" });
   const [activeConfigTab, setActiveConfigTab] = useState("basic");
@@ -1510,33 +1510,22 @@ function ParameterEditor({ vehicle, updateVehicle, workflowBinding, updateDifyWo
           <section className="model-config-section">
             <div className="spec-editor-head">
               <div>
-                <strong>Dify 工作流</strong>
-                <p>当前车辆独立绑定一个 Chatflow：{workflowBinding?.configured ? normalizeWorkflowName(workflowBinding.appName) : "未配置"}</p>
+                <strong>智能客服配置</strong>
+                <p>每辆车独立绑定自己的客服服务：{workflowBinding?.configured ? normalizeWorkflowName(workflowBinding.appName) : "未配置"}</p>
               </div>
-              {workflowBinding?.configured && <em className="workflow-status">已绑定 {workflowBinding.tokenPreview}</em>}
+              {workflowBinding?.configured && <em className="workflow-status">已配置 {workflowBinding.tokenPreview}</em>}
             </div>
             <div className="form-grid workflow-form">
-              <label>工作流名称<input value={workflowDraft.appName} onChange={(e) => setWorkflowDraft({ ...workflowDraft, appName: e.target.value })} /></label>
-              <label>App ID<input value={workflowDraft.appId} onChange={(e) => setWorkflowDraft({ ...workflowDraft, appId: e.target.value })} /></label>
-              <label>Workflow ID<input value={workflowDraft.workflowId} onChange={(e) => setWorkflowDraft({ ...workflowDraft, workflowId: e.target.value })} /></label>
-              <label>API 地址<input value={workflowDraft.apiBaseUrl} onChange={(e) => setWorkflowDraft({ ...workflowDraft, apiBaseUrl: e.target.value })} /></label>
+              <label>客服名称<input value={workflowDraft.appName} onChange={(e) => setWorkflowDraft({ ...workflowDraft, appName: e.target.value })} /></label>
+              <label>服务地址<input value={workflowDraft.apiBaseUrl} onChange={(e) => setWorkflowDraft({ ...workflowDraft, apiBaseUrl: e.target.value })} /></label>
               <label>应用类型<select value={workflowDraft.appType} onChange={(e) => setWorkflowDraft({ ...workflowDraft, appType: e.target.value })}>
-                <option value="chatflow">Chatflow</option>
-                <option value="workflow">Workflow</option>
+                <option value="chatflow">对话应用</option>
+                <option value="workflow">流程应用</option>
               </select></label>
-              <label>API Key<input value={workflowDraft.apiKey} onChange={(e) => setWorkflowDraft({ ...workflowDraft, apiKey: e.target.value })} placeholder={workflowBinding?.configured ? "留空则保持原密钥" : "app-..."} /></label>
-            </div>
-            <div className="knowledge-bindings">
-              {(workflowBinding?.knowledgeBases ?? []).map((dataset) => (
-                <article key={`${dataset.type}-${dataset.datasetId}`}>
-                  <span>{dataset.type === "common" ? "通用知识库" : "车型知识库"}</span>
-                  <strong>{normalizeKnowledgeName(dataset.datasetName)}</strong>
-                  <small>{dataset.datasetId}</small>
-                </article>
-              ))}
+              <label>访问密钥<input value={workflowDraft.apiKey} onChange={(e) => setWorkflowDraft({ ...workflowDraft, apiKey: e.target.value })} placeholder={workflowBinding?.configured ? "留空则保持原密钥" : "app-..."} /></label>
             </div>
             <button className="primary compact-action" onClick={saveWorkflowBinding}>
-              <Save size={17} />保存工作流绑定
+              <Save size={17} />保存客服配置
             </button>
           </section>
         )}
@@ -1724,7 +1713,7 @@ export function App() {
         },
       }));
     } catch {
-      window.alert("Dify 工作流绑定保存失败，请确认本地 API 服务正常。");
+      window.alert("智能客服配置保存失败，请确认本地服务正常。");
     }
   };
 
