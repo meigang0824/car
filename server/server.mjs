@@ -1,7 +1,7 @@
 import { createServer } from "node:http";
 import { existsSync, readFileSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
+import { dirname, extname, resolve } from "node:path";
 import { Readable, Transform } from "node:stream";
 import { fileURLToPath } from "node:url";
 import { defaultCatalog } from "./defaultCatalog.mjs";
@@ -11,8 +11,10 @@ const dataPath = resolve(__dirname, "../data/catalog.json");
 const difyWorkflowsPath = resolve(__dirname, "../data/dify-workflows.json");
 const chatHistoryPath = resolve(__dirname, "../data/chat-history.json");
 const obsidianSyncPath = resolve(__dirname, "../data/obsidian-sync");
+const staticRoot = resolve(__dirname, "../dist");
 const envPath = resolve(__dirname, "../.env");
 const port = Number(process.env.API_PORT ?? 4174);
+const host = process.env.HOST ?? "127.0.0.1";
 
 const loadEnvFile = async () => {
   try {
@@ -58,6 +60,48 @@ const send = (response, status, body) => {
 const sendStream = (response, event, data) => {
   response.write(`event: ${event}\n`);
   response.write(`data: ${JSON.stringify(data)}\n\n`);
+};
+
+const staticMimeTypes = {
+  ".html": "text/html; charset=utf-8",
+  ".js": "text/javascript; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".svg": "image/svg+xml",
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".webp": "image/webp",
+  ".ico": "image/x-icon",
+  ".mp3": "audio/mpeg",
+  ".wav": "audio/wav",
+};
+
+const serveStatic = async (request, response, pathname) => {
+  if (request.method !== "GET" && request.method !== "HEAD") return false;
+  if (!existsSync(staticRoot)) return false;
+
+  const decodedPath = decodeURIComponent(pathname);
+  const requestedPath = decodedPath === "/" ? "/index.html" : decodedPath;
+  const candidatePath = resolve(staticRoot, `.${requestedPath}`);
+  const safeRoot = `${staticRoot}/`;
+  const targetPath = candidatePath === staticRoot || candidatePath.startsWith(safeRoot)
+    ? candidatePath
+    : resolve(staticRoot, "index.html");
+  const filePath = existsSync(targetPath) ? targetPath : resolve(staticRoot, "index.html");
+
+  try {
+    const content = await readFile(filePath);
+    response.writeHead(200, {
+      "Content-Type": staticMimeTypes[extname(filePath).toLowerCase()] ?? "application/octet-stream",
+      "Cache-Control": filePath.endsWith("index.html") ? "no-cache" : "public, max-age=31536000, immutable",
+    });
+    if (request.method === "HEAD") response.end();
+    else response.end(content);
+    return true;
+  } catch {
+    return false;
+  }
 };
 
 const normalizeWorkflowName = (name, fallback = "专属智能客服工作流") =>
@@ -225,9 +269,18 @@ const normalizeCatalog = (body) => {
   };
 };
 
+const normalizeBaseUrl = (value) => String(value || "http://127.0.0.1/v1").replace(/\/$/, "");
+
+const difyBaseUrl = (binding = {}) => {
+  const bindingUrl = normalizeBaseUrl(binding.apiBaseUrl);
+  const envUrl = process.env.DIFY_API_BASE_URL ? normalizeBaseUrl(process.env.DIFY_API_BASE_URL) : "";
+  if (envUrl && /\/\/(127\.0\.0\.1|localhost)(:\d+)?\//.test(bindingUrl)) return envUrl;
+  return bindingUrl || envUrl || "http://127.0.0.1/v1";
+};
+
 const difyConfig = (binding = {}) => ({
   apiKey: binding.apiKey ?? process.env.DIFY_API_KEY ?? "",
-  apiBaseUrl: (binding.apiBaseUrl ?? process.env.DIFY_API_BASE_URL ?? "http://127.0.0.1/v1").replace(/\/$/, ""),
+  apiBaseUrl: difyBaseUrl(binding),
   appType: (binding.appType ?? process.env.DIFY_APP_TYPE ?? "chatflow").toLowerCase(),
   workflowId: binding.workflowId ?? process.env.DIFY_WORKFLOW_ID ?? "",
   user: binding.user ?? process.env.DIFY_USER ?? "dealer-demo",
@@ -1313,12 +1366,14 @@ const server = createServer(async (request, response) => {
       return;
     }
 
+    if (await serveStatic(request, response, url.pathname)) return;
+
     send(response, 404, { error: "Not found" });
   } catch (error) {
     send(response, 400, { error: error.message });
   }
 });
 
-server.listen(port, "127.0.0.1", () => {
-  console.log(`EV trike config API listening at http://127.0.0.1:${port}`);
+server.listen(port, host, () => {
+  console.log(`EV trike platform listening at http://${host}:${port}`);
 });

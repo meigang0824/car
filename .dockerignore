@@ -1,0 +1,12 @@
+.git
+.DS_Store
+.env
+.npm-cache
+node_modules
+dist
+data/backups
+data/chat-history.json
+data/dify-workflows.json
+npm-debug.log*
+Dockerfile
+docker-compose*.yml

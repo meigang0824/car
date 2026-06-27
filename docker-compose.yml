@@ -1,0 +1,36 @@
+services:
+  ev-trike-platform:
+    build:
+      context: .
+    image: ev-trike-platform:latest
+    container_name: ev-trike-platform
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-4174}:4174"
+    environment:
+      HOST: 0.0.0.0
+      API_PORT: 4174
+      DIFY_API_BASE_URL: ${DOCKER_DIFY_API_BASE_URL:-http://host.docker.internal/v1}
+      DIFY_APP_TYPE: ${DIFY_APP_TYPE:-chatflow}
+      DIFY_USER: ${DIFY_USER:-dealer-demo}
+      TTS_PROVIDER: ${TTS_PROVIDER:-siliconflow}
+      TTS_VOICE_ID: ${TTS_VOICE_ID:-FunAudioLLM/CosyVoice2-0.5B:claire}
+      SILICONFLOW_BASE_URL: ${SILICONFLOW_BASE_URL:-https://api.siliconflow.cn}
+      SILICONFLOW_TTS_MODEL: ${SILICONFLOW_TTS_MODEL:-FunAudioLLM/CosyVoice2-0.5B}
+      SILICONFLOW_API_KEY: ${SILICONFLOW_API_KEY:-}
+      DOUBAO_ACCESS_KEY: ${DOUBAO_ACCESS_KEY:-}
+      DOUBAO_API_KEY: ${DOUBAO_API_KEY:-}
+      DOUBAO_APP_ID: ${DOUBAO_APP_ID:-}
+      DOUBAO_RESOURCE_ID: ${DOUBAO_RESOURCE_ID:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.openai.com}
+    volumes:
+      - ./data:/app/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4174/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
