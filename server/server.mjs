@@ -1233,9 +1233,15 @@ const server = createServer(async (request, response) => {
 
     if (request.method === "GET" && url.pathname === "/api/chat-history") {
       const vehicleId = url.searchParams.get("vehicleId") ?? "";
+      const knowledgeSignature = url.searchParams.get("knowledgeSignature") ?? "";
       const history = await readChatHistory();
       if (vehicleId) {
-        send(response, 200, history.vehicles[vehicleId] ?? { messages: [], conversationId: "" });
+        const vehicleHistory = history.vehicles[vehicleId] ?? { messages: [], conversationId: "" };
+        if (knowledgeSignature && vehicleHistory.knowledgeSignature !== knowledgeSignature) {
+          send(response, 200, { vehicleId, messages: [], conversationId: "" });
+          return;
+        }
+        send(response, 200, vehicleHistory);
         return;
       }
 
@@ -1286,6 +1292,7 @@ const server = createServer(async (request, response) => {
         vehicleId,
         vehicleName: String(body.vehicleName ?? ""),
         conversationId: String(body.conversationId ?? ""),
+        knowledgeSignature: String(body.knowledgeSignature ?? ""),
         messages: normalizeChatMessages(body.messages),
         updatedAt: new Date().toISOString(),
       };

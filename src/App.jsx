@@ -160,6 +160,23 @@ const renderMessageText = (text) =>
     return part;
   });
 
+const vehicleKnowledgeSignature = (vehicle = {}) => {
+  const payload = JSON.stringify({
+    id: vehicle.id,
+    name: vehicle.name,
+    series: vehicle.series,
+    price: vehicle.price,
+    dealerPolicy: vehicle.dealerPolicy,
+    slogan: vehicle.slogan,
+    specs: vehicle.specs,
+  });
+  let hash = 5381;
+  for (let index = 0; index < payload.length; index += 1) {
+    hash = ((hash << 5) + hash) ^ payload.charCodeAt(index);
+  }
+  return `v1-${(hash >>> 0).toString(36)}`;
+};
+
 const requiredSpecGroups = [["电压"], ["电机", "电机功率"], ["速度", "续航里程"], ["尺寸"]];
 
 const parameterTemplates = [
@@ -502,6 +519,7 @@ function AiGuide({ vehicle, workflowBinding }) {
   const speechActiveRef = useRef(false);
   const speakingRef = useRef(false);
   const audioRef = useRef(null);
+  const knowledgeSignature = vehicleKnowledgeSignature(vehicle);
 
   useEffect(() => {
     let ignore = false;
@@ -524,7 +542,7 @@ function AiGuide({ vehicle, workflowBinding }) {
 
     const loadHistory = async () => {
       try {
-        const response = await fetch(`${API_CHAT_HISTORY}?vehicleId=${encodeURIComponent(vehicle.id)}`);
+        const response = await fetch(`${API_CHAT_HISTORY}?vehicleId=${encodeURIComponent(vehicle.id)}&knowledgeSignature=${encodeURIComponent(knowledgeSignature)}`);
         const history = await response.json();
         if (ignore) return;
         const savedMessages = Array.isArray(history.messages) ? history.messages : [];
@@ -539,7 +557,7 @@ function AiGuide({ vehicle, workflowBinding }) {
     return () => {
       ignore = true;
     };
-  }, [vehicle.id, vehicle.name, vehicle.specs]);
+  }, [vehicle.id, knowledgeSignature]);
 
   useEffect(() => {
     chatLogRef.current?.scrollTo({
@@ -737,6 +755,7 @@ function AiGuide({ vehicle, workflowBinding }) {
         body: JSON.stringify({
           vehicleName: vehicle.name,
           conversationId: "",
+          knowledgeSignature,
           messages: persistedMessages,
         }),
     });

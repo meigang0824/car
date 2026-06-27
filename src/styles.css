@@ -233,8 +233,8 @@ body {
   height: 100%;
   min-height: 0;
   display: grid;
-  grid-template-columns: 264px minmax(540px, 1fr) 404px;
-  gap: 24px;
+  grid-template-columns: minmax(220px, 264px) minmax(500px, 1fr) minmax(360px, 400px);
+  gap: 20px;
   overflow: hidden;
 }
 
@@ -453,9 +453,10 @@ body {
 }
 
 .thumb-strip {
+  min-height: 98px;
   display: flex;
   justify-content: safe center;
-  align-items: stretch;
+  align-items: center;
   gap: 10px;
   overflow-x: auto;
   padding: 2px 8px 8px;
@@ -464,6 +465,7 @@ body {
 
 .thumb-strip button {
   flex: 0 0 96px;
+  height: 88px;
   min-height: 88px;
   display: grid;
   grid-template-rows: 52px auto;
