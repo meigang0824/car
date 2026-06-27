@@ -509,6 +509,13 @@ function AiGuide({ vehicle, workflowBinding }) {
   const [transcript, setTranscript] = useState("");
   const [isAsking, setIsAsking] = useState(false);
   const [conversationId, setConversationId] = useState("");
+  const quickQuestions = [
+    "多少钱？",
+    "电机多少瓦？",
+    "能跑多远？",
+    "适合什么客户？",
+    "减震怎么样？",
+  ];
   const chatLogRef = useRef(null);
   const recognitionRef = useRef(null);
   const voiceModeRef = useRef(false);
@@ -1051,6 +1058,13 @@ function AiGuide({ vehicle, workflowBinding }) {
           </div>
         ))}
       </div>
+      <div className="quick-prompts" aria-label="常用问题">
+        {quickQuestions.map((question) => (
+          <button key={question} onClick={() => ask(question)} disabled={isAsking}>
+            {question}
+          </button>
+        ))}
+      </div>
       <div className="voice-card">
         <div className="voice-bot"><Bot size={18} /></div>
         <div className="voice-copy">
@@ -1204,7 +1218,14 @@ function AdminConsole({
 }
 
 function ParameterEditor({ vehicle, updateVehicle, workflowBinding, updateDifyWorkflow }) {
+  const configTabs = [
+    { id: "basic", label: "基础信息" },
+    { id: "images", label: "产品图片" },
+    { id: "specs", label: "参数项" },
+    { id: "workflow", label: "Dify 工作流" },
+  ];
   const [imageDraft, setImageDraft] = useState({ label: "产品图", src: "" });
+  const [activeConfigTab, setActiveConfigTab] = useState("basic");
   const [workflowDraft, setWorkflowDraft] = useState({
     appName: "",
     appId: "",
@@ -1227,6 +1248,7 @@ function ParameterEditor({ vehicle, updateVehicle, workflowBinding, updateDifyWo
 
   useEffect(() => {
     setImageDraft({ label: "产品图", src: "" });
+    setActiveConfigTab("basic");
     setDraft({
       name: vehicle.name,
       series: vehicle.series,
@@ -1374,112 +1396,139 @@ function ParameterEditor({ vehicle, updateVehicle, workflowBinding, updateDifyWo
       <div>
         <h3>{vehicle.name} 车辆配置</h3>
         <p>当前页面只配置这辆车自己的基础信息、产品图片和参数项。</p>
-        <div className="template-grid">
-          {parameterTemplates.map((template) => (
-            <button key={template.name} onClick={() => applyTemplate(template)}>
-              <strong>{template.name}</strong>
-              <span>{template.summary}</span>
+        <div className="config-tabs" role="tablist" aria-label="配置分组">
+          {configTabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={activeConfigTab === tab.id}
+              className={activeConfigTab === tab.id ? "active" : ""}
+              onClick={() => setActiveConfigTab(tab.id)}
+            >
+              {tab.label}
             </button>
           ))}
         </div>
-        <div className="form-grid">
-          <label>车辆名称<input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} /></label>
-          <label>所属系列<input value={draft.series} onChange={(e) => setDraft({ ...draft, series: e.target.value })} /></label>
-          <label>状态<select value={draft.status} onChange={(e) => setDraft({ ...draft, status: e.target.value })}>
-            <option>已发布</option>
-            <option>待上架</option>
-            <option>草稿</option>
-          </select></label>
-          <label>标签<input value={draft.tags} onChange={(e) => setDraft({ ...draft, tags: e.target.value })} /></label>
-          <label>指导价<input value={draft.price} onChange={(e) => setDraft({ ...draft, price: e.target.value })} /></label>
-          <label>库存台数<input type="number" value={draft.inventory} onChange={(e) => setDraft({ ...draft, inventory: Number(e.target.value) })} /></label>
-          <label className="wide">产品卖点<textarea value={draft.slogan} onChange={(e) => setDraft({ ...draft, slogan: e.target.value })} /></label>
-          <label className="wide">经销商政策<textarea value={draft.policy} onChange={(e) => setDraft({ ...draft, policy: e.target.value })} /></label>
-        </div>
 
-        <section className="model-config-section">
-          <div className="spec-editor-head">
-            <div>
-              <strong>Dify 工作流</strong>
-              <p>当前车辆独立绑定一个 Chatflow：{workflowBinding?.configured ? normalizeWorkflowName(workflowBinding.appName) : "未配置"}</p>
-            </div>
-            {workflowBinding?.configured && <em className="workflow-status">已绑定 {workflowBinding.tokenPreview}</em>}
-          </div>
-          <div className="form-grid workflow-form">
-            <label>工作流名称<input value={workflowDraft.appName} onChange={(e) => setWorkflowDraft({ ...workflowDraft, appName: e.target.value })} /></label>
-            <label>App ID<input value={workflowDraft.appId} onChange={(e) => setWorkflowDraft({ ...workflowDraft, appId: e.target.value })} /></label>
-            <label>Workflow ID<input value={workflowDraft.workflowId} onChange={(e) => setWorkflowDraft({ ...workflowDraft, workflowId: e.target.value })} /></label>
-            <label>API 地址<input value={workflowDraft.apiBaseUrl} onChange={(e) => setWorkflowDraft({ ...workflowDraft, apiBaseUrl: e.target.value })} /></label>
-            <label>应用类型<select value={workflowDraft.appType} onChange={(e) => setWorkflowDraft({ ...workflowDraft, appType: e.target.value })}>
-              <option value="chatflow">Chatflow</option>
-              <option value="workflow">Workflow</option>
-            </select></label>
-            <label>API Key<input value={workflowDraft.apiKey} onChange={(e) => setWorkflowDraft({ ...workflowDraft, apiKey: e.target.value })} placeholder={workflowBinding?.configured ? "留空则保持原密钥" : "app-..."} /></label>
-          </div>
-          <div className="knowledge-bindings">
-            {(workflowBinding?.knowledgeBases ?? []).map((dataset) => (
-              <article key={`${dataset.type}-${dataset.datasetId}`}>
-                <span>{dataset.type === "common" ? "通用知识库" : "车型知识库"}</span>
-                <strong>{normalizeKnowledgeName(dataset.datasetName)}</strong>
-                <small>{dataset.datasetId}</small>
-              </article>
-            ))}
-          </div>
-          <button className="primary compact-action" onClick={saveWorkflowBinding}>
-            <Save size={17} />保存工作流绑定
-          </button>
-        </section>
-
-        <section className="model-config-section">
-          <div className="spec-editor-head">
-            <div>
-              <strong>产品图片</strong>
-              <p>图片只绑定到当前车辆：{vehicle.name}</p>
-            </div>
-            <label className="upload-action">
-              <Upload size={16} />
-              上传图片
-              <input type="file" accept="image/*" multiple onChange={uploadImages} />
-            </label>
-          </div>
-          <div className="asset-bind compact">
-            <label>图片名称<input value={imageDraft.label} onChange={(e) => setImageDraft({ ...imageDraft, label: e.target.value })} /></label>
-            <label>图片地址<input value={imageDraft.src} onChange={(e) => setImageDraft({ ...imageDraft, src: e.target.value })} placeholder="/assets/products/xingrui-01.jpg" /></label>
-            <button onClick={addImage}><Plus size={16} />绑定图片</button>
-          </div>
-          <div className="config-image-grid">
-            {vehicle.images.map((image, index) => (
-              <article key={`${image.src}-${index}`}>
-                <button onClick={() => removeImage(index)} disabled={vehicle.images.length <= 1} aria-label="删除图片">
-                  <X size={15} />
+        {activeConfigTab === "basic" && (
+          <section className="config-tab-panel">
+            <div className="template-grid">
+              {parameterTemplates.map((template) => (
+                <button key={template.name} onClick={() => applyTemplate(template)}>
+                  <strong>{template.name}</strong>
+                  <span>{template.summary}</span>
                 </button>
-                <ProductSprite src={image.src} alt={`${vehicle.name}${image.label}`} tone={vehicle.color} />
-                <strong>{image.label}</strong>
-              </article>
+              ))}
+            </div>
+            <div className="form-grid">
+              <label>车辆名称<input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} /></label>
+              <label>所属系列<input value={draft.series} onChange={(e) => setDraft({ ...draft, series: e.target.value })} /></label>
+              <label>状态<select value={draft.status} onChange={(e) => setDraft({ ...draft, status: e.target.value })}>
+                <option>已发布</option>
+                <option>待上架</option>
+                <option>草稿</option>
+              </select></label>
+              <label>标签<input value={draft.tags} onChange={(e) => setDraft({ ...draft, tags: e.target.value })} /></label>
+              <label>指导价<input value={draft.price} onChange={(e) => setDraft({ ...draft, price: e.target.value })} /></label>
+              <label>库存台数<input type="number" value={draft.inventory} onChange={(e) => setDraft({ ...draft, inventory: Number(e.target.value) })} /></label>
+              <label className="wide">产品卖点<textarea value={draft.slogan} onChange={(e) => setDraft({ ...draft, slogan: e.target.value })} /></label>
+              <label className="wide">经销商政策<textarea value={draft.policy} onChange={(e) => setDraft({ ...draft, policy: e.target.value })} /></label>
+            </div>
+          </section>
+        )}
+
+        {activeConfigTab === "workflow" && (
+          <section className="model-config-section">
+            <div className="spec-editor-head">
+              <div>
+                <strong>Dify 工作流</strong>
+                <p>当前车辆独立绑定一个 Chatflow：{workflowBinding?.configured ? normalizeWorkflowName(workflowBinding.appName) : "未配置"}</p>
+              </div>
+              {workflowBinding?.configured && <em className="workflow-status">已绑定 {workflowBinding.tokenPreview}</em>}
+            </div>
+            <div className="form-grid workflow-form">
+              <label>工作流名称<input value={workflowDraft.appName} onChange={(e) => setWorkflowDraft({ ...workflowDraft, appName: e.target.value })} /></label>
+              <label>App ID<input value={workflowDraft.appId} onChange={(e) => setWorkflowDraft({ ...workflowDraft, appId: e.target.value })} /></label>
+              <label>Workflow ID<input value={workflowDraft.workflowId} onChange={(e) => setWorkflowDraft({ ...workflowDraft, workflowId: e.target.value })} /></label>
+              <label>API 地址<input value={workflowDraft.apiBaseUrl} onChange={(e) => setWorkflowDraft({ ...workflowDraft, apiBaseUrl: e.target.value })} /></label>
+              <label>应用类型<select value={workflowDraft.appType} onChange={(e) => setWorkflowDraft({ ...workflowDraft, appType: e.target.value })}>
+                <option value="chatflow">Chatflow</option>
+                <option value="workflow">Workflow</option>
+              </select></label>
+              <label>API Key<input value={workflowDraft.apiKey} onChange={(e) => setWorkflowDraft({ ...workflowDraft, apiKey: e.target.value })} placeholder={workflowBinding?.configured ? "留空则保持原密钥" : "app-..."} /></label>
+            </div>
+            <div className="knowledge-bindings">
+              {(workflowBinding?.knowledgeBases ?? []).map((dataset) => (
+                <article key={`${dataset.type}-${dataset.datasetId}`}>
+                  <span>{dataset.type === "common" ? "通用知识库" : "车型知识库"}</span>
+                  <strong>{normalizeKnowledgeName(dataset.datasetName)}</strong>
+                  <small>{dataset.datasetId}</small>
+                </article>
+              ))}
+            </div>
+            <button className="primary compact-action" onClick={saveWorkflowBinding}>
+              <Save size={17} />保存工作流绑定
+            </button>
+          </section>
+        )}
+
+        {activeConfigTab === "images" && (
+          <section className="model-config-section">
+            <div className="spec-editor-head">
+              <div>
+                <strong>产品图片</strong>
+                <p>图片只绑定到当前车辆：{vehicle.name}</p>
+              </div>
+              <label className="upload-action">
+                <Upload size={16} />
+                上传图片
+                <input type="file" accept="image/*" multiple onChange={uploadImages} />
+              </label>
+            </div>
+            <div className="asset-bind compact">
+              <label>图片名称<input value={imageDraft.label} onChange={(e) => setImageDraft({ ...imageDraft, label: e.target.value })} /></label>
+              <label>图片地址<input value={imageDraft.src} onChange={(e) => setImageDraft({ ...imageDraft, src: e.target.value })} placeholder="/assets/products/xingrui-01.jpg" /></label>
+              <button onClick={addImage}><Plus size={16} />绑定图片</button>
+            </div>
+            <div className="config-image-grid">
+              {vehicle.images.map((image, index) => (
+                <article key={`${image.src}-${index}`}>
+                  <button onClick={() => removeImage(index)} disabled={vehicle.images.length <= 1} aria-label="删除图片">
+                    <X size={15} />
+                  </button>
+                  <ProductSprite src={image.src} alt={`${vehicle.name}${image.label}`} tone={vehicle.color} />
+                  <strong>{image.label}</strong>
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {activeConfigTab === "specs" && (
+          <div className="spec-editor">
+            <div className="spec-editor-head">
+              <div>
+                <strong>参数项</strong>
+                <p>参数只保存到当前车辆，不影响其他车辆。</p>
+              </div>
+              <button onClick={addSpec}><Plus size={16} />添加参数</button>
+            </div>
+            {draft.specs.map((item, index) => (
+              <div className="spec-row" key={`${item.label}-${index}`}>
+                <input value={item.label} onChange={(e) => updateSpec(index, "label", e.target.value)} placeholder="参数名" />
+                <input value={item.value} onChange={(e) => updateSpec(index, "value", e.target.value)} placeholder="参数值" />
+                <button onClick={() => removeSpec(index)} aria-label="删除参数"><X size={16} /></button>
+              </div>
             ))}
           </div>
-        </section>
+        )}
 
-        <div className="spec-editor">
-          <div className="spec-editor-head">
-            <div>
-              <strong>参数项</strong>
-              <p>参数只保存到当前车辆，不影响其他车辆。</p>
-            </div>
-            <button onClick={addSpec}><Plus size={16} />添加参数</button>
-          </div>
-          {draft.specs.map((item, index) => (
-            <div className="spec-row" key={`${item.label}-${index}`}>
-              <input value={item.label} onChange={(e) => updateSpec(index, "label", e.target.value)} placeholder="参数名" />
-              <input value={item.value} onChange={(e) => updateSpec(index, "value", e.target.value)} placeholder="参数值" />
-              <button onClick={() => removeSpec(index)} aria-label="删除参数"><X size={16} /></button>
-            </div>
-          ))}
+        <div className="config-save-bar">
+          <button className="primary" onClick={() => saveDraft()}>
+            <Save size={18} />保存并同步
+          </button>
         </div>
-
-        <button className="primary" onClick={() => saveDraft()}>
-          <Save size={18} />保存并同步
-        </button>
       </div>
       <div className="live-preview">
         <span className="eyebrow">实时预览</span>

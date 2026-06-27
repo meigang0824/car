@@ -760,6 +760,32 @@ body {
   font-size: 11px;
 }
 
+.quick-prompts {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 0 18px 12px;
+  scrollbar-width: thin;
+}
+
+.quick-prompts button {
+  flex: 0 0 auto;
+  min-height: 42px;
+  padding: 0 14px;
+  color: #2265b8;
+  background: #f3f8ff;
+  border: 1px solid #d7e7fb;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.quick-prompts button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
 @keyframes streamCursor {
   0%, 45% {
     opacity: 1;
@@ -772,9 +798,9 @@ body {
 
 .voice-card {
   margin: 0 18px 14px;
-  min-height: 92px;
+  min-height: 108px;
   display: grid;
-  grid-template-columns: 46px minmax(0, 1fr) 66px;
+  grid-template-columns: 46px minmax(0, 1fr) 86px;
   gap: 12px;
   align-items: center;
   padding: 14px;
@@ -823,10 +849,10 @@ body {
 }
 
 .talk-btn {
-  width: 62px;
-  min-height: 70px;
+  width: 82px;
+  min-height: 88px;
   display: grid;
-  grid-template-rows: 50px auto;
+  grid-template-rows: 66px auto;
   place-items: center;
   gap: 5px;
   color: #2867b6;
@@ -836,8 +862,8 @@ body {
 }
 
 .talk-icon {
-  width: 48px;
-  height: 48px;
+  width: 64px;
+  height: 64px;
   display: grid;
   place-items: center;
   color: white;
@@ -918,7 +944,7 @@ body {
 
 .talk-btn span {
   color: currentColor;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 900;
 }
 
@@ -1169,7 +1195,7 @@ body {
 }
 
 .model-card-actions button {
-  height: 32px;
+  min-height: 40px;
   color: var(--blue);
   background: white;
   border: 1px solid #d5e5fb;
@@ -1192,7 +1218,7 @@ body {
 }
 
 .config-model-actions button {
-  height: 42px;
+  min-height: 44px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1320,6 +1346,7 @@ body {
 }
 
 .admin-board {
+  height: 100%;
   min-height: 0;
   border-radius: 18px;
   padding: 22px;
@@ -1470,7 +1497,7 @@ body {
 }
 
 .form-grid {
-  margin: 24px 0;
+  margin: 18px 0;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
@@ -1500,7 +1527,7 @@ body {
 
 .form-grid input,
 .form-grid select {
-  height: 44px;
+  min-height: 46px;
   padding: 0 12px;
 }
 
@@ -1511,14 +1538,14 @@ body {
 }
 
 .template-grid {
-  margin-top: 18px;
+  margin-top: 0;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
 }
 
 .template-grid button {
-  min-height: 72px;
+  min-height: 78px;
   padding: 12px;
   display: grid;
   gap: 6px;
@@ -1547,6 +1574,43 @@ body {
   color: #748194;
   font-size: 12px;
   line-height: 1.35;
+}
+
+.config-tabs {
+  position: sticky;
+  top: -1px;
+  z-index: 5;
+  margin: 16px 0 18px;
+  padding: 10px 0 12px;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,255,255,0.9));
+  backdrop-filter: blur(16px);
+}
+
+.config-tabs button {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 0 17px;
+  color: #526177;
+  background: #f4f8ff;
+  border: 1px solid #dfe8f6;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.config-tabs button.active {
+  color: white;
+  background: var(--blue);
+  border-color: var(--blue);
+  box-shadow: 0 10px 22px rgba(31, 115, 255, 0.22);
+}
+
+.config-tab-panel {
+  min-width: 0;
 }
 
 .spec-editor {
@@ -1598,7 +1662,7 @@ body {
 }
 
 .spec-editor-head button {
-  height: 34px;
+  min-height: 42px;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -1610,7 +1674,7 @@ body {
 }
 
 .upload-action {
-  height: 34px;
+  min-height: 42px;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -1678,12 +1742,12 @@ body {
 }
 
 .compact-action {
-  height: 38px;
+  min-height: 42px;
   padding: 0 14px;
 }
 
 .asset-bind.compact button {
-  height: 42px;
+  min-height: 46px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1704,7 +1768,7 @@ body {
 .config-image-grid article {
   position: relative;
   min-width: 0;
-  padding: 8px;
+  padding: 10px;
   border: 1px solid #e3ebf6;
   border-radius: 12px;
   background: white;
@@ -1712,7 +1776,7 @@ body {
 
 .config-image-grid .sprite {
   width: 100%;
-  height: 82px;
+  height: 94px;
   border-radius: 9px;
   background: #f9fbff;
 }
@@ -1730,11 +1794,11 @@ body {
 
 .config-image-grid article > button {
   position: absolute;
-  top: 6px;
-  right: 6px;
+  top: 8px;
+  right: 8px;
   z-index: 2;
-  width: 26px;
-  height: 26px;
+  width: 40px;
+  height: 40px;
   display: grid;
   place-items: center;
   color: #7c4a54;
@@ -1745,14 +1809,14 @@ body {
 
 .spec-row {
   display: grid;
-  grid-template-columns: minmax(100px, 0.72fr) minmax(160px, 1fr) 38px;
+  grid-template-columns: minmax(110px, 0.72fr) minmax(180px, 1fr) 44px;
   gap: 10px;
   margin-top: 9px;
 }
 
 .spec-row input {
   min-width: 0;
-  height: 38px;
+  min-height: 44px;
   padding: 0 11px;
   border: 1px solid #dce6f5;
   border-radius: 9px;
@@ -1762,13 +1826,28 @@ body {
 }
 
 .spec-row button {
-  width: 38px;
-  height: 38px;
+  width: 44px;
+  height: 44px;
   display: grid;
   place-items: center;
   color: #8a4c56;
   background: #fff1f3;
   border-radius: 9px;
+}
+
+.config-save-bar {
+  position: sticky;
+  bottom: -1px;
+  z-index: 4;
+  margin-top: 18px;
+  padding: 14px 0 2px;
+  display: flex;
+  justify-content: flex-end;
+  background: linear-gradient(180deg, rgba(255,255,255,0), rgba(255,255,255,0.96) 38%, rgba(255,255,255,0.98));
+}
+
+.config-save-bar .primary {
+  min-height: 46px;
 }
 
 .live-preview {
@@ -2124,8 +2203,14 @@ body {
   }
 
   .config-model-list {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    overflow: visible;
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .config-model-list article {
+    flex: 0 0 270px;
   }
 
   .vehicle-rail {
@@ -2256,7 +2341,12 @@ body {
   .side-actions,
   .config-model-list,
   .config-model-actions {
+    display: grid;
     grid-template-columns: 1fr;
+  }
+
+  .config-model-list article {
+    flex: initial;
   }
 
 }
