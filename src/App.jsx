@@ -639,7 +639,7 @@ function AiGuide({ vehicle, workflowBinding }) {
     idle: {
       title: voiceMode ? `${vehicle.name} 智能客服待命` : `${vehicle.name} 语音智能客服`,
       hint: voiceSupported
-        ? ttsConfig.configured ? "开启后直接提问，智能客服会用模型音色流式播报" : "TTS 模型未配置，暂时使用浏览器兜底播报"
+        ? ttsConfig.configured ? "" : "TTS 模型未配置，暂时使用浏览器兜底播报"
         : "当前浏览器不支持语音识别",
       action: voiceMode ? "关闭" : "开启",
     },
@@ -1137,7 +1137,7 @@ function AiGuide({ vehicle, workflowBinding }) {
         <div className="voice-bot"><Bot size={18} /></div>
         <div className="voice-copy">
           <strong>{voiceMeta.title}</strong>
-          <span>{voiceMeta.hint}</span>
+          {voiceMeta.hint && <span>{voiceMeta.hint}</span>}
           <div className={`wave ${voiceState}`} aria-hidden="true">
             {Array.from({ length: 22 }).map((_, i) => <i key={i} style={{ height: `${8 + ((i * 3) % 8) * 3}px` }} />)}
           </div>
