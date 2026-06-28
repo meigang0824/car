@@ -419,11 +419,63 @@ const factHintRules = [
   [/核心|配置|参数|有哪些|卖点/, ["电机系统", "电池系统", "速度性能", "刹车系统", "减震系统", "载重能力", "特色功能"]],
 ];
 
+const isVehiclePriceQuestion = (question = "") => {
+  const raw = String(question ?? "");
+  const asksPrice = /(整车|这车|车辆|车价|售价|价格|多少钱|报价|标价|成交价|活动价|怎么卖|落地价|裸车)/.test(raw);
+  if (!asksPrice) return false;
+  const asksRunningCost = /(充电|电费|几度电|一度电|充一次|保养|维修|换电池)/.test(raw);
+  const explicitlyVehicle = /(整车|这车|车辆|车价|售价|报价|标价|成交价|活动价|怎么卖|落地价|裸车|买)/.test(raw);
+  return !asksRunningCost || explicitlyVehicle;
+};
+
+const isChargingCostQuestion = (question = "") => {
+  const raw = String(question ?? "");
+  return /(充电|电费|几度电|一度电|充一次)/.test(raw) && /(多少钱|费用|成本|价格|贵不贵|多少)/.test(raw);
+};
+
+const hasVehiclePriceAnswer = (answer = "") => {
+  const text = String(answer ?? "");
+  return /(元|¥)/.test(text);
+};
+
+const hasChargingCostAnswer = (answer = "") => {
+  const text = String(answer ?? "");
+  return /(充电|电费|电价|几度电|度电|用车成本|费用|元|¥)/.test(text) && !/(电机|控制器|多少瓦|功率)/.test(text);
+};
+
+const vehiclePriceAnswer = (vehicle = {}) => {
+  const policy = String(vehicle?.dealerPolicy ?? "").trim();
+  const price = String(vehicle?.price ?? "").trim();
+  const priceLine = policy || (price ? `参考价格：${price}。` : "");
+  if (!priceLine) return "这款车当前没有配置明确价格，建议以门店最新报价、实际配置和当地政策确认为准。";
+  const needsConfirmation = !/(具体成交价|实际配置|电池规格|当地政策|门店.*确认|实车.*确认)/.test(priceLine);
+  return `${vehicle?.name ?? "这款车"}的价格口径是：${priceLine}${needsConfirmation ? " 具体成交价要按门店配置、电池规格和当地政策确认。" : ""}`;
+};
+
+const chargingCostAnswer = (vehicle = {}) => {
+  const voltage = (Array.isArray(vehicle?.specs) ? vehicle.specs : []).find(([label]) => label === "电压")?.[1];
+  const voltageText = voltage ? `后台资料目前只标了电压是${voltage}，` : "后台资料目前没有标清电池容量，";
+  return `${vehicle?.name ?? "这款车"}充一次电多少钱，要看客户选的电池容量和当地电价。${voltageText}没有标具体电池容量，所以别直接报固定金额。门店可以按实车电池规格现场估算，给客户讲就是日常用电成本比较低，具体以实车和当地电价为准。`;
+};
+
+const normalizeGuideAnswer = (answer, question, vehicle = {}) => {
+  if (isVehiclePriceQuestion(question) && !hasVehiclePriceAnswer(answer)) {
+    return vehiclePriceAnswer(vehicle);
+  }
+  if (isChargingCostQuestion(question) && !hasChargingCostAnswer(answer)) {
+    return chargingCostAnswer(vehicle);
+  }
+  return answer;
+};
+
 const retrievalHints = (question, vehicle = {}) => {
   const raw = String(question ?? "");
   const hints = new Set([vehicle?.name, vehicle?.series].filter(Boolean));
   for (const [pattern, words] of retrievalHintRules) {
     if (pattern.test(raw)) words.forEach((word) => hints.add(word));
+  }
+  if (isVehiclePriceQuestion(raw)) {
+    ["整车价格", "车辆售价", "门店报价", "参考价格", "价格口径", "成交价", "活动价"].forEach((word) => hints.add(word));
   }
   for (const [label, value] of Array.isArray(vehicle?.specs) ? vehicle.specs : []) {
     const terms = [label, ...(specAliasMap[label] ?? [])].filter(Boolean);
@@ -470,9 +522,15 @@ const relevantVehicleFacts = (question, vehicle = {}) => {
   const specs = Array.isArray(vehicle?.specs) ? vehicle.specs : [];
   const facts = [];
 
-  if (/(价格|多少钱|报价|标价|成交价|活动价|费用|怎么卖)/.test(raw)) {
+  if (isVehiclePriceQuestion(raw)) {
+    addUniqueFact(facts, "问题意图=整车售价/门店报价，不是充电费用、用车成本或电机配置");
     addUniqueFact(facts, vehicle?.dealerPolicy);
     addUniqueFact(facts, vehicle?.price ? `展示价=${vehicle.price}` : "");
+  } else if (isChargingCostQuestion(raw)) {
+    addUniqueFact(facts, "问题意图=充电费用/用车成本，不是整车售价、电机功率或控制器配置");
+    addUniqueFact(facts, "当前后台资料未配置电池容量和当地电价，不能直接计算固定充电费用");
+    const voltage = specs.find(([label]) => label === "电压")?.[1];
+    addUniqueFact(facts, voltage ? `电压=${voltage}` : "");
   }
 
   if (/(库存|现货|有货|多少台)/.test(raw)) {
@@ -505,7 +563,10 @@ const buildDifyQuestion = (question, vehicle = {}) => {
   const scopedQuestion = !vehicleName || raw.includes(vehicleName) ? raw : `${vehicleName} ${raw}`;
   const hints = retrievalHints(raw, vehicle);
   const hintText = hints.length ? `\n检索关键词：${hints.join("、")}` : "";
-  return `${scopedQuestion}${hintText}${relevantVehicleFacts(raw, vehicle)}`.trim();
+  const intentText = isVehiclePriceQuestion(raw)
+    ? "\n回答约束：这是整车售价/门店报价问题。必须优先回答参考价格、展示价或门店价格口径；不要回答电机、电池、充电费用、续航或配置卖点，除非价格说完后作为一句补充。"
+    : "";
+  return `${scopedQuestion}${intentText}${hintText}${relevantVehicleFacts(raw, vehicle)}`.trim();
 };
 
 const parseDifyBody = (text) => {
@@ -852,7 +913,7 @@ const runDifyWorkflow = async ({ question, vehicle }, config) => {
   }
 
   return {
-    answer: findWorkflowText(body),
+    answer: normalizeGuideAnswer(findWorkflowText(body), question, vehicle),
     provider: "dify-workflow",
     taskId: body.task_id ?? body.taskId,
     workflowRunId: body.workflow_run_id ?? body.data?.id,
@@ -889,7 +950,7 @@ const runDifyChatflow = async ({ question, vehicle, conversationId = "" }, confi
   }
 
   return {
-    answer: body.answer || findWorkflowText(body),
+    answer: normalizeGuideAnswer(body.answer || findWorkflowText(body), question, vehicle),
     provider: "dify-chatflow",
     conversationId: body.conversation_id ?? conversationId,
     messageId: body.message_id,
@@ -1035,6 +1096,7 @@ const runDifyWorkflowStream = async ({ question, vehicle }, config, binding, res
 
   let answer = "";
   const deltaWriter = createGuideDeltaWriter(response);
+  const holdDeltas = isVehiclePriceQuestion(question);
   let finalPayload = {};
   let workflowRunId = "";
   const resources = [];
@@ -1046,7 +1108,7 @@ const runDifyWorkflowStream = async ({ question, vehicle }, config, binding, res
     const delta = extractStreamDelta(payloadChunk);
     if ((payloadChunk.event === "text_chunk" || payloadChunk.event === "message" || payloadChunk.event === "agent_message") && delta) {
       answer += delta;
-      deltaWriter.push(delta);
+      if (!holdDeltas) deltaWriter.push(delta);
     }
 
     if (payloadChunk.event === "workflow_finished") {
@@ -1054,17 +1116,18 @@ const runDifyWorkflowStream = async ({ question, vehicle }, config, binding, res
       const output = extractWorkflowOutput(payloadChunk);
       if (output && !answer) {
         answer = output;
-        deltaWriter.push(output);
+        if (!holdDeltas) deltaWriter.push(output);
       }
     }
   });
 
   const streamedAnswer = deltaWriter.flush();
-  answer = answer.trim() || streamedAnswer;
+  answer = normalizeGuideAnswer(answer.trim() || streamedAnswer, question, vehicle);
 
   if (!answer) {
     throw new Error("Dify工作流没有返回内容");
   }
+  if (holdDeltas) await streamText(response, answer);
 
   const payloadForTrace = {
     ...finalPayload,
@@ -1118,6 +1181,7 @@ const runDifyChatflowStream = async ({ question, vehicle, conversationId = "" },
 
   let answer = "";
   const deltaWriter = createGuideDeltaWriter(response);
+  const holdDeltas = isVehiclePriceQuestion(question);
   let finalPayload = {};
   let nextConversationId = conversationId;
   let messageId = "";
@@ -1131,7 +1195,7 @@ const runDifyChatflowStream = async ({ question, vehicle, conversationId = "" },
     const delta = extractStreamDelta(payloadChunk);
     if ((payloadChunk.event === "message" || payloadChunk.event === "agent_message") && delta) {
       answer += delta;
-      deltaWriter.push(delta);
+      if (!holdDeltas) deltaWriter.push(delta);
     }
 
     if (payloadChunk.event === "message_end" || payloadChunk.event === "workflow_finished") {
@@ -1140,11 +1204,12 @@ const runDifyChatflowStream = async ({ question, vehicle, conversationId = "" },
   });
 
   const streamedAnswer = deltaWriter.flush();
-  answer = answer.trim() || streamedAnswer;
+  answer = normalizeGuideAnswer(answer.trim() || streamedAnswer, question, vehicle);
 
   if (!answer) {
     throw new Error("Dify工作流没有返回内容");
   }
+  if (holdDeltas) await streamText(response, answer);
 
   const payloadForTrace = {
     ...finalPayload,
