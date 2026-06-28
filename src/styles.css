@@ -261,6 +261,7 @@ body {
 }
 
 .showroom-workspace {
+  padding-bottom: max(14px, 10vh);
   overflow: hidden;
 }
 
@@ -2846,7 +2847,7 @@ body {
   }
 
   .app-surface.showroom-surface .workspace {
-    padding: 22px 28px 14px;
+    padding: 22px 28px max(14px, 10vh);
   }
 
   .app-surface.showroom-surface .showroom-grid {
@@ -2903,8 +2904,8 @@ body {
 
   .app-surface.showroom-surface .stage-panel {
     padding: 16px 24px 18px;
-    grid-template-rows: auto minmax(220px, 1fr) auto auto;
-    gap: 12px;
+    grid-template-rows: auto minmax(188px, 1fr) auto auto;
+    gap: 10px;
     border-radius: 18px;
   }
 
@@ -2918,38 +2919,38 @@ body {
   }
 
   .app-surface.showroom-surface .product-canvas {
-    min-height: 220px;
+    min-height: 188px;
     border-radius: 18px;
   }
 
   .app-surface.showroom-surface .hero-sprite {
-    width: min(540px, 86%);
-    height: 220px;
-    min-height: 220px;
+    width: min(500px, 84%);
+    height: 188px;
+    min-height: 188px;
   }
 
   .app-surface.showroom-surface .thumb-strip {
-    min-height: 98px;
+    min-height: 78px;
     gap: 10px;
-    padding: 2px 8px 8px;
+    padding: 0 8px 5px;
   }
 
   .app-surface.showroom-surface .thumb-strip button {
-    flex-basis: 96px;
-    height: 88px;
-    min-height: 88px;
-    grid-template-rows: 52px auto;
+    flex-basis: 84px;
+    height: 70px;
+    min-height: 70px;
+    grid-template-rows: 42px auto;
     gap: 4px;
     padding: 5px;
-    font-size: 11px;
+    font-size: 10px;
   }
 
   .app-surface.showroom-surface .thumb-strip img {
-    height: 52px;
+    height: 42px;
   }
 
   .app-surface.showroom-surface .spec-summary {
-    min-height: 204px;
+    min-height: 176px;
     grid-auto-rows: minmax(0, 1fr);
     grid-template-columns: repeat(4, minmax(0, 1fr));
     grid-template-rows: repeat(3, minmax(0, 1fr));
