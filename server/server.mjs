@@ -749,6 +749,12 @@ const getTtsConfig = () => {
   };
 };
 
+const getAsrConfig = () => ({
+  provider: "siliconflow",
+  model: process.env.SILICONFLOW_ASR_MODEL || "FunAudioLLM/SenseVoiceSmall",
+  configured: Boolean(process.env.SILICONFLOW_ASR_API_KEY || process.env.SILICONFLOW_API_KEY),
+});
+
 const streamSiliconFlowTts = async ({ text, voiceId, apiKey, baseURL, model }) => {
   if (!apiKey) throw new Error("硅基流动 TTS 未配置 API Key");
   const selectedVoice = voiceId || "FunAudioLLM/CosyVoice2-0.5B:claire";
@@ -1450,6 +1456,11 @@ const server = createServer(async (request, response) => {
 
     if (request.method === "GET" && url.pathname === "/api/tts-config") {
       send(response, 200, getTtsConfig());
+      return;
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/asr-config") {
+      send(response, 200, getAsrConfig());
       return;
     }
 

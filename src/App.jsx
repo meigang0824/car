@@ -31,6 +31,7 @@ const API_DIFY_WORKFLOWS = "/api/dify-workflows";
 const API_CHAT_HISTORY = "/api/chat-history";
 const API_TTS_CONFIG = "/api/tts-config";
 const API_TTS_STREAM = "/api/tts/stream";
+const API_ASR_CONFIG = "/api/asr-config";
 const API_ASR_TRANSCRIBE = "/api/asr/transcribe";
 
 const productImages = (prefix, count, labels = []) =>
@@ -524,6 +525,7 @@ function AiGuide({ vehicle, workflowBinding }) {
   const [voiceMode, setVoiceMode] = useState(false);
   const [voiceState, setVoiceState] = useState("idle");
   const [ttsConfig, setTtsConfig] = useState({ configured: false, provider: "doubao", voiceId: "", voices: {}, providers: [] });
+  const [asrConfig, setAsrConfig] = useState({ configured: false, provider: "siliconflow", model: "" });
   const [selectedVoiceId, setSelectedVoiceId] = useState(() => {
     if (typeof window === "undefined") return "";
     return window.localStorage.getItem("ev-trike-guide-model-voice") || "";
@@ -625,7 +627,7 @@ function AiGuide({ vehicle, workflowBinding }) {
   const isAppleTouchDevice = typeof navigator !== "undefined"
     && (/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1));
   const shouldUseModelVoiceInput = recorderSupported && (isAppleTouchDevice || !browserSpeechSupported);
-  const voiceSupported = shouldUseModelVoiceInput || browserSpeechSupported;
+  const voiceSupported = (shouldUseModelVoiceInput && asrConfig.configured) || browserSpeechSupported;
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -637,28 +639,34 @@ function AiGuide({ vehicle, workflowBinding }) {
     let ignore = false;
     let retryTimer = null;
 
-    const loadTtsConfig = async () => {
+    const loadVoiceConfig = async () => {
       try {
-        const response = await fetch(API_TTS_CONFIG);
+        const [response, asrResponse] = await Promise.all([
+          fetch(API_TTS_CONFIG),
+          fetch(API_ASR_CONFIG),
+        ]);
         if (!response.ok) throw new Error("tts config unavailable");
         const config = await response.json();
+        const nextAsrConfig = asrResponse.ok ? await asrResponse.json() : { configured: false, provider: "siliconflow", model: "" };
         if (ignore) return;
         setTtsConfig(config);
+        setAsrConfig(nextAsrConfig);
         const voices = config.voices?.[config.provider] ?? [];
         const savedVoiceAvailable = selectedVoiceId && voices.some((voice) => voice.id === selectedVoiceId);
         if (!savedVoiceAvailable) setSelectedVoiceId(config.voiceId || voices[0]?.id || "");
-        if (!config.configured) {
-          retryTimer = window.setTimeout(loadTtsConfig, 2500);
+        if (!config.configured || !nextAsrConfig.configured) {
+          retryTimer = window.setTimeout(loadVoiceConfig, 2500);
         }
       } catch {
         if (!ignore) {
           setTtsConfig({ configured: false, provider: "siliconflow", voiceId: "", voices: {}, providers: [] });
-          retryTimer = window.setTimeout(loadTtsConfig, 2500);
+          setAsrConfig({ configured: false, provider: "siliconflow", model: "" });
+          retryTimer = window.setTimeout(loadVoiceConfig, 2500);
         }
       }
     };
 
-    loadTtsConfig();
+    loadVoiceConfig();
     return () => {
       ignore = true;
       if (retryTimer) window.clearTimeout(retryTimer);
@@ -670,7 +678,9 @@ function AiGuide({ vehicle, workflowBinding }) {
       title: voiceMode ? `${vehicle.name} 智能客服待命` : `${vehicle.name} 语音智能客服`,
       hint: voiceSupported
         ? ""
-        : "当前浏览器不支持语音输入",
+        : recorderSupported && shouldUseModelVoiceInput
+          ? "语音识别模型未配置"
+          : "当前浏览器不支持语音输入",
       action: voiceMode ? "停止" : "点击说话",
     },
     listening: {
@@ -1095,7 +1105,14 @@ function AiGuide({ vehicle, workflowBinding }) {
         }
       }, 4200);
     } catch (error) {
-      setTranscript(error.name === "NotAllowedError" ? "请允许麦克风权限" : "麦克风打开失败");
+      const message = error.name === "NotAllowedError"
+        ? "麦克风被拒绝，请在浏览器里允许麦克风权限"
+        : error.name === "NotFoundError"
+          ? "没有找到可用麦克风"
+          : !window.isSecureContext
+            ? "当前不是安全 HTTPS 环境，麦克风不可用"
+            : `麦克风打开失败：${error.message || error.name || "未知错误"}`;
+      setTranscript(message);
       setVoiceState("idle");
       stopModelRecording();
     }
@@ -1176,7 +1193,11 @@ function AiGuide({ vehicle, workflowBinding }) {
     setVoiceMode(true);
     voiceModeRef.current = true;
     setTranscript("");
-    window.setTimeout(startListening, shouldUseModelVoiceInput ? 250 : 120);
+    if (shouldUseModelVoiceInput) {
+      void startModelRecording();
+    } else {
+      window.setTimeout(startListening, 120);
+    }
   };
 
   const ask = async (text = draft, options = {}) => {
