@@ -5,11 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "node server/dev.mjs",
-    "dev:vite": "vite --host 127.0.0.1",
+    "dev:vite": "vite --host 0.0.0.0",
     "api": "node server/server.mjs",
     "start": "node server/server.mjs",
     "build": "vite build",
-    "preview": "vite preview --host 127.0.0.1"
+    "preview": "vite preview --host 0.0.0.0",
+    "cert:dev": "node scripts/generate-local-https-cert.mjs"
   },
   "dependencies": {
     "@vitejs/plugin-react": "5.0.4",
