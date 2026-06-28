@@ -246,10 +246,14 @@ const writeChatHistory = async (history) => {
   }, null, 2)}\n`, "utf8");
 };
 
-const normalizeChatMessages = (messages) =>
-  Array.isArray(messages)
+const obsoleteChatAnswer = (text = "") =>
+  /智能客服暂时没有响应|智能客服调用失败|Dify工作流没有返回内容/.test(String(text));
+
+const normalizeChatMessages = (messages) => {
+  const normalized = Array.isArray(messages)
     ? messages
         .filter((message) => message && (message.role === "user" || message.role === "ai") && typeof message.text === "string")
+        .filter((message) => message.role !== "ai" || !obsoleteChatAnswer(message.text))
         .slice(-80)
         .map((message) => ({
           role: message.role,
@@ -258,6 +262,10 @@ const normalizeChatMessages = (messages) =>
           trace: Array.isArray(message.trace) ? message.trace.slice(0, 8) : undefined,
         }))
     : [];
+
+  while (normalized.at(-1)?.role === "user") normalized.pop();
+  return normalized;
+};
 
 const normalizeCatalog = (body) => {
   const vehicles = Array.isArray(body) ? body : body.vehicles;
@@ -442,103 +450,6 @@ const isVehiclePriceQuestion = (question = "") => {
 const isChargingCostQuestion = (question = "") => {
   const raw = String(question ?? "");
   return /(充电|电费|几度电|一度电|充一次)/.test(raw) && /(多少钱|费用|成本|价格|贵不贵|多少)/.test(raw);
-};
-
-const hasVehiclePriceAnswer = (answer = "") => {
-  const text = String(answer ?? "");
-  return /(元|¥)/.test(text);
-};
-
-const hasChargingCostAnswer = (answer = "") => {
-  const text = String(answer ?? "");
-  return /(充电|电费|电价|几度电|度电|用车成本|费用|元|¥)/.test(text) && !/(电机|控制器|多少瓦|功率)/.test(text);
-};
-
-const vehiclePriceAnswer = (vehicle = {}) => {
-  const policy = String(vehicle?.dealerPolicy ?? "").trim();
-  const price = String(vehicle?.price ?? "").trim();
-  const priceLine = policy || (price ? `参考价格：${price}。` : "");
-  if (!priceLine) return "这款车当前没有配置明确价格，建议以门店最新报价、实际配置和当地政策确认为准。";
-  const needsConfirmation = !/(具体成交价|实际配置|电池规格|当地政策|门店.*确认|实车.*确认)/.test(priceLine);
-  return `${vehicle?.name ?? "这款车"}的价格口径是：${priceLine}${needsConfirmation ? " 具体成交价要按门店配置、电池规格和当地政策确认。" : ""}`;
-};
-
-const chargingCostAnswer = (vehicle = {}) => {
-  const voltage = (Array.isArray(vehicle?.specs) ? vehicle.specs : []).find(([label]) => label === "电压")?.[1];
-  const voltageText = voltage ? `后台资料目前只标了电压是${voltage}，` : "后台资料目前没有标清电池容量，";
-  return `${vehicle?.name ?? "这款车"}充一次电多少钱，要看客户选的电池容量和当地电价。${voltageText}没有标具体电池容量，所以别直接报固定金额。门店可以按实车电池规格现场估算，给客户讲就是日常用电成本比较低，具体以实车和当地电价为准。`;
-};
-
-const vehicleSpecValue = (vehicle = {}, label) =>
-  (Array.isArray(vehicle?.specs) ? vehicle.specs : []).find(([name]) => name === label)?.[1] ?? "";
-
-const cleanFactValue = (value = "") =>
-  String(value)
-    .replace(/[\[\]']/g, "")
-    .replace(/,\s*/g, "、")
-    .trim();
-
-const factsInSections = (vehicle = {}, sections = []) =>
-  (productFactsByVehicle[vehicle?.id] ?? [])
-    .filter((fact) => sections.includes(fact.section))
-    .map((fact) => {
-      const value = cleanFactValue(fact.value);
-      return fact.key === fact.section ? value : `${fact.key}：${value}`;
-    })
-    .filter((value, index, list) => value && list.indexOf(value) === index);
-
-const listText = (items, fallback = "当前资料未标注") => {
-  const values = items.filter(Boolean);
-  return values.length ? values.join("；") : fallback;
-};
-
-const fallbackGuideAnswer = (question, vehicle = {}) => {
-  const raw = String(question ?? "");
-  const name = vehicle?.name ?? "这款车";
-  if (isVehiclePriceQuestion(raw)) return vehiclePriceAnswer(vehicle);
-  if (isChargingCostQuestion(raw)) return chargingCostAnswer(vehicle);
-
-  if (/电机|多少瓦|几瓦|功率|动力/.test(raw)) {
-    const motor = vehicleSpecValue(vehicle, "电机");
-    const controller = vehicleSpecValue(vehicle, "控制器");
-    const voltage = vehicleSpecValue(vehicle, "电压");
-    const facts = factsInSections(vehicle, ["电机系统"]).slice(0, 5);
-    return `${name}的电机配置是${motor || listText(facts)}。${controller ? `控制器是${controller}。` : ""}${voltage ? `整车电压是${voltage}。` : ""}门店讲法可以简单说：这套动力主要适合日常代步、接送孩子和买菜，参数以实车和最新配置单为准。`;
-  }
-
-  if (/续航|跑多远|能跑|多少公里|电池/.test(raw)) {
-    const rangeFacts = factsInSections(vehicle, ["续航能力"]).slice(0, 6);
-    const batteryFacts = factsInSections(vehicle, ["电池系统"]).slice(0, 4);
-    return `${name}的续航要看电池规格。${listText([...rangeFacts, ...batteryFacts])}。门店讲法可以说：实际能跑多远会受载重、路况、天气和骑行习惯影响，按客户日常接送、买菜、通勤的路程来配电池更稳。`;
-  }
-
-  if (/适合|客户|人群|场景|推荐|谁买/.test(raw)) {
-    const targets = factsInSections(vehicle, ["目标人群"]).slice(0, 5);
-    const scenes = factsInSections(vehicle, ["适用场景"]).slice(0, 6);
-    const positioning = [vehicle?.series, vehicle?.slogan].filter(Boolean).join("，");
-    return `${name}适合${listText(targets, "有短途代步需求的客户")}。主要使用场景是${listText(scenes, "接送孩子、买菜、上下班和周边短途出行")}。导购可以这样讲：这款车定位是${positioning || "日常实用代步"}，先按客户每天跑多远、坐几个人、路况怎么样来推荐，会更容易成交。`;
-  }
-
-  if (/减震|避震|悬挂|颠|舒适/.test(raw)) {
-    const shock = vehicleSpecValue(vehicle, "减震");
-    const facts = factsInSections(vehicle, ["减震系统"]).slice(0, 6);
-    return `${name}的减震配置是${shock || listText(facts)}。${facts.length ? `资料里还标注：${listText(facts)}。` : ""}门店讲法可以说：让客户现场坐一下、过个小坎感受，舒适性比单纯讲参数更直观。`;
-  }
-
-  const specs = (Array.isArray(vehicle?.specs) ? vehicle.specs : [])
-    .slice(0, 8)
-    .map(([label, value]) => `${label}：${value}`);
-  return `${name}当前核心配置是：${listText(specs)}。建议按客户用途继续追问，是接送孩子、买菜代步，还是载人载物，再对应推荐。`;
-};
-
-const normalizeGuideAnswer = (answer, question, vehicle = {}) => {
-  if (isVehiclePriceQuestion(question) && !hasVehiclePriceAnswer(answer)) {
-    return vehiclePriceAnswer(vehicle);
-  }
-  if (isChargingCostQuestion(question) && !hasChargingCostAnswer(answer)) {
-    return chargingCostAnswer(vehicle);
-  }
-  return answer;
 };
 
 const retrievalHints = (question, vehicle = {}) => {
@@ -879,7 +790,7 @@ const compactText = (value, maxLength = 180) =>
     .trim()
     .slice(0, maxLength);
 
-const buildTrace = ({ question, vehicle = {}, binding = {}, provider = "local-fallback", payload = {}, configured = false }) => {
+const buildTrace = ({ question, vehicle = {}, binding = {}, provider = "dify-chatflow", payload = {}, configured = false }) => {
   const resources = payload?.metadata?.retriever_resources ?? payload?.retriever_resources ?? [];
   const usage = payload?.metadata?.usage ?? {};
   const knowledgeBases = Array.isArray(binding.knowledgeBases) ? binding.knowledgeBases : [];
@@ -932,7 +843,7 @@ const buildTrace = ({ question, vehicle = {}, binding = {}, provider = "local-fa
   return trace;
 };
 
-const buildPendingTrace = ({ question, vehicle = {}, binding = {}, provider = "local-fallback", configured = false }) => {
+const buildPendingTrace = ({ question, vehicle = {}, binding = {}, provider = "dify-chatflow", configured = false }) => {
   const knowledgeBases = Array.isArray(binding.knowledgeBases) ? binding.knowledgeBases : [];
   const trace = [
     {
@@ -961,28 +872,6 @@ const buildPendingTrace = ({ question, vehicle = {}, binding = {}, provider = "l
   }
 
   return trace;
-};
-
-const buildFallbackTrace = ({ question, vehicle = {}, binding = {}, provider = "config-fallback", reason = "" }) => {
-  const trace = buildTrace({ question, vehicle, binding, provider, configured: Boolean(binding?.apiKey) });
-  trace[trace.length - 1] = {
-    title: "生成产品回答",
-    detail: `工作流暂无有效回复，已使用当前车型配置回答${reason ? `：${compactText(reason, 80)}` : ""}`,
-    status: "done",
-  };
-  return trace;
-};
-
-const fallbackGuideResult = ({ question, vehicle = {}, binding = {}, provider = "config-fallback", reason = "" }) => {
-  const answer = normalizeGuideAnswer(fallbackGuideAnswer(question, vehicle), question, vehicle);
-  return {
-    answer,
-    provider,
-    bindingName: normalizeWorkflowName(binding.appName, ""),
-    appId: binding.appId ?? "",
-    configured: Boolean(binding?.apiKey),
-    trace: buildFallbackTrace({ question, vehicle, binding, provider, reason }),
-  };
 };
 
 const runDifyWorkflow = async ({ question, vehicle }, config) => {
@@ -1014,7 +903,7 @@ const runDifyWorkflow = async ({ question, vehicle }, config) => {
   }
 
   return {
-    answer: normalizeGuideAnswer(findWorkflowText(body), question, vehicle),
+    answer: findWorkflowText(body),
     provider: "dify-workflow",
     taskId: body.task_id ?? body.taskId,
     workflowRunId: body.workflow_run_id ?? body.data?.id,
@@ -1052,7 +941,7 @@ const runDifyChatflow = async ({ question, vehicle, conversationId = "" }, confi
   }
 
   return {
-    answer: normalizeGuideAnswer(body.answer || findWorkflowText(body), question, vehicle),
+    answer: body.answer || findWorkflowText(body),
     provider: "dify-chatflow",
     conversationId: body.conversation_id ?? conversationId,
     messageId: body.message_id,
@@ -1066,22 +955,11 @@ const runDifyGuide = async ({ question, vehicle, conversationId }) => {
   const binding = workflowConfig.bindings?.[vehicle?.id] ?? {};
   const config = difyConfig(binding);
   if (!config.apiKey) {
-    return fallbackGuideResult({ question, vehicle, binding, reason: "当前车型未配置工作流 API Key" });
+    throw new Error("当前车型未配置Dify工作流 API Key");
   }
 
-  try {
-    if (config.appType === "workflow") {
-      const result = await runDifyWorkflow({ question, vehicle }, config);
-      if (!result.answer) throw new Error("Dify工作流没有返回内容");
-      return {
-        ...result,
-        bindingName: normalizeWorkflowName(binding.appName, ""),
-        appId: binding.appId ?? "",
-        trace: buildTrace({ question, vehicle, binding, provider: result.provider, payload: result.raw, configured: true }),
-      };
-    }
-
-    const result = await runDifyChatflow({ question, vehicle, conversationId }, config);
+  if (config.appType === "workflow") {
+    const result = await runDifyWorkflow({ question, vehicle }, config);
     if (!result.answer) throw new Error("Dify工作流没有返回内容");
     return {
       ...result,
@@ -1089,9 +967,16 @@ const runDifyGuide = async ({ question, vehicle, conversationId }) => {
       appId: binding.appId ?? "",
       trace: buildTrace({ question, vehicle, binding, provider: result.provider, payload: result.raw, configured: true }),
     };
-  } catch (error) {
-    return fallbackGuideResult({ question, vehicle, binding, reason: error.message });
   }
+
+  const result = await runDifyChatflow({ question, vehicle, conversationId }, config);
+  if (!result.answer) throw new Error("Dify工作流没有返回内容");
+  return {
+    ...result,
+    bindingName: normalizeWorkflowName(binding.appName, ""),
+    appId: binding.appId ?? "",
+    trace: buildTrace({ question, vehicle, binding, provider: result.provider, payload: result.raw, configured: true }),
+  };
 };
 
 const readSsePayloads = async (body, onPayload) => {
@@ -1228,7 +1113,7 @@ const runDifyWorkflowStream = async ({ question, vehicle }, config, binding, res
   });
 
   const streamedAnswer = deltaWriter.flush();
-  answer = normalizeGuideAnswer(answer.trim() || streamedAnswer, question, vehicle);
+  answer = (answer.trim() || streamedAnswer).trim();
 
   if (!answer) {
     throw new Error("Dify工作流没有返回内容");
@@ -1315,7 +1200,7 @@ const runDifyChatflowStream = async ({ question, vehicle, conversationId = "" },
   });
 
   const streamedAnswer = deltaWriter.flush();
-  answer = normalizeGuideAnswer(answer.trim() || streamedAnswer, question, vehicle);
+  answer = (answer.trim() || streamedAnswer).trim();
 
   if (!answer) {
     throw new Error("Dify工作流没有返回内容");
@@ -1370,14 +1255,20 @@ const streamDifyGuide = async ({ question, vehicle, conversationId }, response) 
     await runDifyChatflowStream({ question, vehicle, conversationId }, config, binding, response);
     response.end();
   } catch (error) {
-    const fallback = fallbackGuideResult({ question, vehicle, binding, reason: error.message });
-    sendStream(response, "trace", { trace: fallback.trace });
-    await streamText(response, fallback.answer);
-    sendStream(response, "done", {
-      answer: fallback.answer,
-      trace: fallback.trace,
-      fallback: true,
+    const trace = buildTrace({
+      question,
+      vehicle,
+      binding,
+      provider: config.appType === "workflow" ? "dify-workflow" : "dify-chatflow",
+      configured: Boolean(config.apiKey),
     });
+    trace[trace.length - 1] = {
+      title: "工作流调用失败",
+      detail: compactText(error.message, 120),
+      status: "error",
+    };
+    sendStream(response, "trace", { trace });
+    sendStream(response, "error", { message: error.message });
     response.end();
   }
 };

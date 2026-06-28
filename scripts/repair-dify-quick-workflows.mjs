@@ -69,10 +69,25 @@ const sceneText = (vehicle) => {
   return "看重空间、舒适性和配置感的家庭客户；适合接送孩子、老人短途出行、夫妻日常代步。";
 };
 
+const factSentence = (facts, emptyText = "当前资料未标注") =>
+  facts.filter(Boolean).slice(0, 5).join("；") || emptyText;
+
+const compareAnswers = (vehicle) =>
+  Object.fromEntries(catalog.vehicles
+    .filter((other) => other.id !== vehicle.id)
+    .map((other) => [
+      other.name,
+      `如果客户在${vehicle.name}和${other.name}之间选，可以先看预算和用途。${vehicle.name}定位是${vehicle.series}，价格口径${vehicle.price}，电机${specValue(vehicle, "电机")}，载重${specValue(vehicle, "重量")}，更适合${sceneText(vehicle).replace(/。$/, "")}；${other.name}定位是${other.series}，价格口径${other.price}，电机${specValue(other, "电机")}，载重${specValue(other, "重量")}。门店讲法可以说：先按客户每天跑多远、坐几个人、要不要更高配置来选，预算有限先看${vehicle.name}，想要更高配置再对比${other.name}。`,
+    ]));
+
 const buildBasicAnswers = async (vehicle) => {
   const rangeFacts = await sectionFacts(vehicle.id, "续航能力");
   const batteryFacts = await sectionFacts(vehicle.id, "电池系统");
   const shockFacts = await sectionFacts(vehicle.id, "减震系统");
+  const speedFacts = await sectionFacts(vehicle.id, "速度性能");
+  const featureFacts = await sectionFacts(vehicle.id, "特色功能");
+  const afterSaleFacts = await sectionFacts(vehicle.id, "售后保修");
+  const complianceFacts = await sectionFacts(vehicle.id, "合规认证");
   const priceAnswer = `${vehicle.name}的价格口径是：${vehicle.dealerPolicy || `参考价格：${vehicle.price}`} 具体成交价要按门店配置、电池规格和当地政策确认。`
     .replace(/(确认。)\s+具体成交价要按门店配置、电池规格和当地政策确认。$/, "$1");
   return {
@@ -81,6 +96,12 @@ const buildBasicAnswers = async (vehicle) => {
     range: `${vehicle.name}的续航要看电池规格。${[...rangeFacts.slice(0, 5), ...batteryFacts.slice(0, 3)].join("；") || "当前资料未标注完整续航参数"}。实际能跑多远会受载重、路况、天气和骑行习惯影响，按客户日常里程来配电池更稳。`,
     audience: `${vehicle.name}适合${sceneText(vehicle)}导购可以先问客户每天跑多远、坐几个人、路况怎么样，再对应推荐。`,
     shock: `${vehicle.name}的减震配置是${specValue(vehicle, "减震")}。${shockFacts.length ? `资料里还标注：${shockFacts.slice(0, 4).join("；")}。` : ""}门店讲法可以说：让客户现场坐一下、过个小坎感受，舒适性比单纯讲参数更直观。`,
+    speed: `${vehicle.name}的最高时速是${specValue(vehicle, "速度") || factSentence(speedFacts)}。门店讲法可以说：这个速度主要是日常代步、接送孩子和买菜用，跑得稳比一味求快更重要，具体以实车和当地合规要求为准。`,
+    charging_cost: `${vehicle.name}充一次电多少钱，要看客户选择的电池容量和当地电价。当前资料标注：${factSentence(batteryFacts, `电压${specValue(vehicle, "电压")}`)}。门店不要直接报固定金额，可以按实车电池规格现场估算，给客户讲日常用电成本比较低，具体以当地电价为准。`,
+    aftersale: `${vehicle.name}的售后口径是：${factSentence(afterSaleFacts)}。门店讲法可以说：先按厂家和门店最新保修政策说明，电池、核心部件和整车保修范围要以购车凭证和配置单为准。`,
+    compliance: `${vehicle.name}的合规资料是：${factSentence(complianceFacts)}。门店讲法可以说：上牌、驾照和当地管理要求要看当地政策，建议按门店实车合格证和当地车管要求确认。`,
+    features: `${vehicle.name}的功能配置资料是：${factSentence(featureFacts)}。客户问某个功能时，资料里写了就按资料讲；资料未标注的功能，不要承诺有，建议以实车配置单为准。`,
+    compare: compareAnswers(vehicle),
   };
 };
 
@@ -157,6 +178,24 @@ def main(results, query) -> dict:
         return {"can_direct": "true", "direct_answer": BASIC_ANSWERS.get("audience"), "score": 8}
     if any(word in raw_query for word in ["减震", "避震", "悬挂", "颠", "舒适"]) and BASIC_ANSWERS.get("shock"):
         return {"can_direct": "true", "direct_answer": BASIC_ANSWERS.get("shock"), "score": 8}
+    if any(word in raw_query for word in ["速度", "时速", "最高", "最快", "跑多快"]) and BASIC_ANSWERS.get("speed"):
+        return {"can_direct": "true", "direct_answer": BASIC_ANSWERS.get("speed"), "score": 8}
+    if any(word in raw_query for word in ["充电多少钱", "充一次", "电费", "几度电", "一度电", "用车成本"]) and BASIC_ANSWERS.get("charging_cost"):
+        return {"can_direct": "true", "direct_answer": BASIC_ANSWERS.get("charging_cost"), "score": 8}
+    if any(word in raw_query for word in ["保修", "售后", "维修", "质保"]) and BASIC_ANSWERS.get("aftersale"):
+        return {"can_direct": "true", "direct_answer": BASIC_ANSWERS.get("aftersale"), "score": 8}
+    if any(word in raw_query for word in ["上牌", "驾照", "合规", "国标", "合格证"]) and BASIC_ANSWERS.get("compliance"):
+        return {"can_direct": "true", "direct_answer": BASIC_ANSWERS.get("compliance"), "score": 8}
+    if any(word in raw_query for word in ["暖风", "倒车", "影像", "雷达", "蓝牙", "音箱", "USB", "防盗", "中控锁", "雨刮", "天窗"]) and BASIC_ANSWERS.get("features"):
+        return {"can_direct": "true", "direct_answer": BASIC_ANSWERS.get("features"), "score": 8}
+    if any(word in raw_query for word in ["对比", "比", "怎么选", "哪个好", "区别"]):
+        compare_map = BASIC_ANSWERS.get("compare") or {}
+        for name, answer in compare_map.items():
+            if name and name in raw_query:
+                return {"can_direct": "true", "direct_answer": answer, "score": 8}
+        if compare_map:
+            answer = list(compare_map.values())[0]
+            return {"can_direct": "true", "direct_answer": answer, "score": 7}
     for item in (results or []):
         content = item.get("content", "") or ""
         answer = _answer(content)

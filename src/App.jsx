@@ -632,7 +632,7 @@ function AiGuide({ vehicle, workflowBinding }) {
     idle: {
       title: voiceMode ? `${vehicle.name} 智能客服待命` : `${vehicle.name} 语音智能客服`,
       hint: voiceSupported
-        ? ttsConfig.configured ? "" : "TTS 模型未配置，暂时使用浏览器兜底播报"
+        ? ""
         : "当前浏览器不支持语音识别",
       action: voiceMode ? "关闭" : "开启",
     },
@@ -662,8 +662,8 @@ function AiGuide({ vehicle, workflowBinding }) {
       { title: "接收问题", detail: question, status: pending ? "active" : "done" },
       { title: "定位车型", detail: `${vehicle.name} · ${vehicle.series}`, status: pending ? "active" : "done" },
       {
-        title: workflowBinding?.configured ? "调用智能客服服务" : "使用本地产品资料",
-        detail: workflowBinding?.configured ? normalizeWorkflowName(workflowBinding.appName) : "未配置访问密钥，使用本地参数",
+        title: workflowBinding?.configured ? "调用智能客服服务" : "智能客服未配置",
+        detail: workflowBinding?.configured ? normalizeWorkflowName(workflowBinding.appName) : "当前车型未配置访问密钥",
         status: pending ? "active" : "done",
       },
     {
@@ -720,7 +720,7 @@ function AiGuide({ vehicle, workflowBinding }) {
           return;
         }
 
-        if (event === "error") throw new Error(data.error || "智能客服流式生成失败");
+        if (event === "error") throw new Error(data.message || data.error || "智能客服流式生成失败");
       };
 
       while (true) {
@@ -741,16 +741,12 @@ function AiGuide({ vehicle, workflowBinding }) {
         trace: trace.length ? trace : localTrace(question),
       };
     } catch (error) {
-      const failedAnswer = "智能客服暂时没有响应，请稍后再试。";
-      if (!answer) handlers.onDelta?.(failedAnswer);
-      return {
-        answer: answer || failedAnswer,
-        conversationId: "",
-        trace: [
-          ...localTrace(question),
-          { title: "智能客服请求失败", detail: error.message, status: "done" },
-        ],
-      };
+      error.partialAnswer = answer;
+      error.trace = [
+        ...localTrace(question),
+        { title: "智能客服请求失败", detail: error.message, status: "error" },
+      ];
+      throw error;
     }
   };
 
@@ -793,27 +789,6 @@ function AiGuide({ vehicle, workflowBinding }) {
     window.setTimeout(startListening, 250);
   };
 
-  const playBrowserSpeechFallback = (text) => {
-    if (typeof window === "undefined" || !window.speechSynthesis) return false;
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = "zh-CN";
-    utterance.rate = 0.96;
-    utterance.pitch = 1;
-    utterance.onend = () => {
-      speakingRef.current = false;
-      if (speechQueueRef.current.length) {
-        playNextSpeech();
-        return;
-      }
-      if (!speechActiveRef.current) resumeListeningAfterSpeech();
-    };
-    utterance.onerror = utterance.onend;
-    speakingRef.current = true;
-    setVoiceState("speaking");
-    window.speechSynthesis.speak(utterance);
-    return true;
-  };
-
   const playNextSpeech = async () => {
     if (!voiceModeRef.current || typeof window === "undefined") return;
     if (speakingRef.current) return;
@@ -821,7 +796,7 @@ function AiGuide({ vehicle, workflowBinding }) {
     if (!text) return;
 
     if (!ttsConfig.configured) {
-      playBrowserSpeechFallback(text);
+      if (!speechActiveRef.current) resumeListeningAfterSpeech();
       return;
     }
 
@@ -854,12 +829,12 @@ function AiGuide({ vehicle, workflowBinding }) {
       audio.onerror = () => {
         URL.revokeObjectURL(audioUrl);
         speakingRef.current = false;
-        if (!playBrowserSpeechFallback(text) && !speechActiveRef.current) resumeListeningAfterSpeech();
+        if (!speechActiveRef.current) resumeListeningAfterSpeech();
       };
       await audio.play();
     } catch {
       speakingRef.current = false;
-      if (!playBrowserSpeechFallback(text) && !speechActiveRef.current) resumeListeningAfterSpeech();
+      if (!speechActiveRef.current) resumeListeningAfterSpeech();
     }
   };
 
@@ -989,45 +964,55 @@ function AiGuide({ vehicle, workflowBinding }) {
     isAskingRef.current = true;
     if (options.voice) beginStreamSpeech();
     setMessages((items) => {
-      const next = [...items, userMessage];
-      saveChatHistory(next);
-      return next;
+      return [...items, userMessage];
     });
     setDraft("");
 
     let firstRemoteDelta = true;
 
-    const result = await requestGuideAnswer(question, {
-      onDelta: (delta) => {
-        const visibleDelta = firstRemoteDelta ? delta : delta;
-        firstRemoteDelta = false;
-        if (options.voice) enqueueSpeech(delta);
-        setMessages((items) => {
-          const exists = items.some((item) => item.id === streamMessageId);
-          if (!exists) {
-            return [...items, { id: streamMessageId, role: "ai", text: visibleDelta, pending: true }];
-          }
+    try {
+      const result = await requestGuideAnswer(question, {
+        onDelta: (delta) => {
+          const visibleDelta = firstRemoteDelta ? delta : delta;
+          firstRemoteDelta = false;
+          if (options.voice) enqueueSpeech(delta);
+          setMessages((items) => {
+            const exists = items.some((item) => item.id === streamMessageId);
+            if (!exists) {
+              return [...items, { id: streamMessageId, role: "ai", text: visibleDelta, pending: true }];
+            }
 
-          return items.map((item) =>
-            item.id === streamMessageId ? { ...item, text: `${item.text}${visibleDelta}` } : item
-          );
-        });
-      },
-    });
-    const nextConversationId = "";
-    setConversationId("");
-    setMessages((items) => {
-      const exists = items.some((item) => item.id === streamMessageId);
-      const next = exists
-        ? items.map((item) => item.id === streamMessageId ? { role: "ai", text: result.answer } : item)
-        : [...items, { role: "ai", text: result.answer }];
-      saveChatHistory(next, nextConversationId);
-      return next;
-    });
-    setIsAsking(false);
-    isAskingRef.current = false;
-    if (options.voice) finishStreamSpeech();
-    return result.answer;
+            return items.map((item) =>
+              item.id === streamMessageId ? { ...item, text: `${item.text}${visibleDelta}` } : item
+            );
+          });
+        },
+      });
+      const nextConversationId = "";
+      setConversationId("");
+      setMessages((items) => {
+        const exists = items.some((item) => item.id === streamMessageId);
+        const next = exists
+          ? items.map((item) => item.id === streamMessageId ? { role: "ai", text: result.answer } : item)
+          : [...items, { role: "ai", text: result.answer }];
+        saveChatHistory(next, nextConversationId);
+        return next;
+      });
+      return result.answer;
+    } catch (error) {
+      setMessages((items) => {
+        const withoutPending = items.filter((item) => item.id !== streamMessageId);
+        return [
+          ...withoutPending,
+          { role: "ai", text: `智能客服调用失败：${error.message}`, error: true },
+        ];
+      });
+      return "";
+    } finally {
+      setIsAsking(false);
+      isAskingRef.current = false;
+      if (options.voice) finishStreamSpeech();
+    }
   };
 
   return (
@@ -1037,7 +1022,7 @@ function AiGuide({ vehicle, workflowBinding }) {
         <div>
           <strong>{vehicle.name}智能客服</strong>
           <span>{vehicle.series} · {normalizeWorkflowName(workflowBinding?.appName)}</span>
-          <em>{workflowBinding?.configured ? "专属知识库已接入" : "本地产品资料模式"}</em>
+          <em>{workflowBinding?.configured ? "专属知识库已接入" : "智能客服未配置"}</em>
         </div>
         <button aria-label="语音音量"><Volume2 size={19} /></button>
         <button aria-label="关闭智能客服"><X size={21} /></button>
