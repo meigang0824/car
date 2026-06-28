@@ -579,10 +579,93 @@ const findWorkflowText = (payload) => {
   return "";
 };
 
-const stripMarkdownForSpeech = (text = "") =>
+const chineseDigits = ["零", "一", "二", "三", "四", "五", "六", "七", "八", "九"];
+
+const integerToChinese = (value) => {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return String(value);
+  const int = Math.trunc(Math.abs(number));
+  if (int === 0) return "零";
+
+  const sectionToChinese = (section) => {
+    const units = ["", "十", "百", "千"];
+    let text = "";
+    let zero = false;
+    for (let index = 0; section > 0; index += 1) {
+      const digit = section % 10;
+      if (digit === 0) {
+        zero = Boolean(text);
+      } else {
+        text = `${zero ? "零" : ""}${chineseDigits[digit]}${units[index]}${text}`;
+        zero = false;
+      }
+      section = Math.floor(section / 10);
+    }
+    return text.replace(/^一十/, "十");
+  };
+
+  const sectionUnits = ["", "万", "亿"];
+  let rest = int;
+  let sectionIndex = 0;
+  let result = "";
+  let needZero = false;
+  while (rest > 0) {
+    const section = rest % 10000;
+    if (section === 0) {
+      needZero = Boolean(result);
+    } else {
+      const prefix = needZero || (section < 1000 && result) ? "零" : "";
+      result = `${prefix}${sectionToChinese(section)}${sectionUnits[sectionIndex]}${result}`;
+      needZero = false;
+    }
+    rest = Math.floor(rest / 10000);
+    sectionIndex += 1;
+  }
+  return number < 0 ? `负${result}` : result;
+};
+
+const numberToSpeech = (value) => {
+  const raw = String(value);
+  if (!raw.includes(".")) return integerToChinese(raw);
+  const [integer, decimal] = raw.split(".");
+  return `${integerToChinese(integer)}点${decimal.split("").map((digit) => chineseDigits[Number(digit)] ?? digit).join("")}`;
+};
+
+const digitsToSpeech = (value) =>
+  String(value)
+    .split("")
+    .map((char) => chineseDigits[Number(char)] ?? char)
+    .join("");
+
+const normalizeSpeechUnits = (text = "") =>
   String(text)
+    .replace(/\bUSB\b/gi, "U S B")
+    .replace(/\bLED\b/gi, "L E D")
+    .replace(/\bCST\b/gi, "C S T")
+    .replace(/\bGB\s*(\d[\d-]*)\b/gi, (_, code) => `国标${digitsToSpeech(code)}`)
+    .replace(/\bIPX\s*(\d)\b/gi, (_, level) => `I P X ${numberToSpeech(level)}级`)
+    .replace(/(\d{2,3})\/(\d{2,3})-(\d{1,2})(?=(?:真空胎|轮胎|胎))/g, (_, first, second, third) => `${digitsToSpeech(first)}杠${digitsToSpeech(second)}杠${numberToSpeech(third)}`)
+    .replace(/(\d{3})-(\d{1,2})(?=(?:真空胎|轮胎|胎))/g, (_, first, second) => `${digitsToSpeech(first)}杠${numberToSpeech(second)}`)
+    .replace(/(\d+(?:\.\d+)?)\s*[-~～]\s*(\d+(?:\.\d+)?)\s*(元|公里|千米|小时|分钟|天|年|台|人|公斤|毫米|厘米)/g, (_, start, end, unit) => `${numberToSpeech(start)}到${numberToSpeech(end)}${unit}`)
+    .replace(/(\d+(?:\.\d+)?)\s*km\s*\/\s*h/gi, (_, number) => `${numberToSpeech(number)}公里每小时`)
+    .replace(/(\d+(?:\.\d+)?)\s*(?:Ah|AH|ah)(?=\d|[\u4e00-\u9fff]|[\s,.;:，。；：、)]|$)/g, (_, number) => `${numberToSpeech(number)}安时`)
+    .replace(/(\d+(?:\.\d+)?)\s*[vV](?=\d|[\u4e00-\u9fff]|[\s,.;:，。；：、)]|$)/g, (_, number) => `${numberToSpeech(number)}伏`)
+    .replace(/(\d+(?:\.\d+)?)\s*[wW](?=\d|[\u4e00-\u9fff]|[\s,.;:，。；：、)]|$)/g, (_, number) => `${numberToSpeech(number)}瓦`)
+    .replace(/(\d+(?:\.\d+)?)[*×xX](\d+(?:\.\d+)?)[*×xX](\d+(?:\.\d+)?)\s*mm\b/gi, (_, length, width, height) => `${numberToSpeech(length)}乘${numberToSpeech(width)}乘${numberToSpeech(height)}毫米`)
+    .replace(/(\d+(?:\.\d+)?)[*×xX](\d+(?:\.\d+)?)\s*mm\b/gi, (_, length, width) => `${numberToSpeech(length)}乘${numberToSpeech(width)}毫米`)
+    .replace(/(\d+(?:\.\d+)?)\s*mm\b/gi, (_, number) => `${numberToSpeech(number)}毫米`)
+    .replace(/(\d+(?:\.\d+)?)\s*cm\b/gi, (_, number) => `${numberToSpeech(number)}厘米`)
+    .replace(/(\d+(?:\.\d+)?)\s*kg\b/gi, (_, number) => `${numberToSpeech(number)}公斤`)
+    .replace(/(\d+(?:\.\d+)?)\s*km\b/gi, (_, number) => `${numberToSpeech(number)}公里`)
+    .replace(/(\d+(?:\.\d+)?)\s*(公里|千米|小时|分钟|天|年|台|管|座|人|度|元)/g, (_, number, unit) => `${numberToSpeech(number)}${unit}`)
+    .replace(/[*×xX]/g, "乘");
+
+const stripMarkdownForSpeech = (text = "") =>
+  normalizeSpeechUnits(String(text)
     .replace(/\*\*/g, "")
-    .replace(/[#>`*_~-]/g, "")
+    .replace(/[#>`_]/g, "")
+    .replace(/\s+/g, " ")
+    .trim())
     .replace(/\s+/g, " ")
     .trim();
 
