@@ -15,6 +15,7 @@ const staticRoot = resolve(__dirname, "../dist");
 const envPath = resolve(__dirname, "../.env");
 const port = Number(process.env.API_PORT ?? 4174);
 const host = process.env.HOST ?? "127.0.0.1";
+const difyTimeoutMs = Number(process.env.DIFY_TIMEOUT_MS ?? 18000);
 
 const loadEnvFile = async () => {
   try {
@@ -286,6 +287,16 @@ const difyConfig = (binding = {}) => ({
   user: binding.user ?? process.env.DIFY_USER ?? "dealer-demo",
 });
 
+const fetchDify = async (url, options = {}) => {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(new Error(`Dify request timeout after ${difyTimeoutMs}ms`)), difyTimeoutMs);
+  timer.unref?.();
+  return fetch(url, {
+    ...options,
+    signal: controller.signal,
+  });
+};
+
 const guideInputs = (question, vehicle = {}) => ({
   question,
   vehicle_name: vehicle?.name ?? "",
@@ -456,6 +467,68 @@ const chargingCostAnswer = (vehicle = {}) => {
   const voltage = (Array.isArray(vehicle?.specs) ? vehicle.specs : []).find(([label]) => label === "电压")?.[1];
   const voltageText = voltage ? `后台资料目前只标了电压是${voltage}，` : "后台资料目前没有标清电池容量，";
   return `${vehicle?.name ?? "这款车"}充一次电多少钱，要看客户选的电池容量和当地电价。${voltageText}没有标具体电池容量，所以别直接报固定金额。门店可以按实车电池规格现场估算，给客户讲就是日常用电成本比较低，具体以实车和当地电价为准。`;
+};
+
+const vehicleSpecValue = (vehicle = {}, label) =>
+  (Array.isArray(vehicle?.specs) ? vehicle.specs : []).find(([name]) => name === label)?.[1] ?? "";
+
+const cleanFactValue = (value = "") =>
+  String(value)
+    .replace(/[\[\]']/g, "")
+    .replace(/,\s*/g, "、")
+    .trim();
+
+const factsInSections = (vehicle = {}, sections = []) =>
+  (productFactsByVehicle[vehicle?.id] ?? [])
+    .filter((fact) => sections.includes(fact.section))
+    .map((fact) => {
+      const value = cleanFactValue(fact.value);
+      return fact.key === fact.section ? value : `${fact.key}：${value}`;
+    })
+    .filter((value, index, list) => value && list.indexOf(value) === index);
+
+const listText = (items, fallback = "当前资料未标注") => {
+  const values = items.filter(Boolean);
+  return values.length ? values.join("；") : fallback;
+};
+
+const fallbackGuideAnswer = (question, vehicle = {}) => {
+  const raw = String(question ?? "");
+  const name = vehicle?.name ?? "这款车";
+  if (isVehiclePriceQuestion(raw)) return vehiclePriceAnswer(vehicle);
+  if (isChargingCostQuestion(raw)) return chargingCostAnswer(vehicle);
+
+  if (/电机|多少瓦|几瓦|功率|动力/.test(raw)) {
+    const motor = vehicleSpecValue(vehicle, "电机");
+    const controller = vehicleSpecValue(vehicle, "控制器");
+    const voltage = vehicleSpecValue(vehicle, "电压");
+    const facts = factsInSections(vehicle, ["电机系统"]).slice(0, 5);
+    return `${name}的电机配置是${motor || listText(facts)}。${controller ? `控制器是${controller}。` : ""}${voltage ? `整车电压是${voltage}。` : ""}门店讲法可以简单说：这套动力主要适合日常代步、接送孩子和买菜，参数以实车和最新配置单为准。`;
+  }
+
+  if (/续航|跑多远|能跑|多少公里|电池/.test(raw)) {
+    const rangeFacts = factsInSections(vehicle, ["续航能力"]).slice(0, 6);
+    const batteryFacts = factsInSections(vehicle, ["电池系统"]).slice(0, 4);
+    return `${name}的续航要看电池规格。${listText([...rangeFacts, ...batteryFacts])}。门店讲法可以说：实际能跑多远会受载重、路况、天气和骑行习惯影响，按客户日常接送、买菜、通勤的路程来配电池更稳。`;
+  }
+
+  if (/适合|客户|人群|场景|推荐|谁买/.test(raw)) {
+    const targets = factsInSections(vehicle, ["目标人群"]).slice(0, 5);
+    const scenes = factsInSections(vehicle, ["适用场景"]).slice(0, 6);
+    const positioning = [vehicle?.series, vehicle?.slogan].filter(Boolean).join("，");
+    return `${name}适合${listText(targets, "有短途代步需求的客户")}。主要使用场景是${listText(scenes, "接送孩子、买菜、上下班和周边短途出行")}。导购可以这样讲：这款车定位是${positioning || "日常实用代步"}，先按客户每天跑多远、坐几个人、路况怎么样来推荐，会更容易成交。`;
+  }
+
+  if (/减震|避震|悬挂|颠|舒适/.test(raw)) {
+    const shock = vehicleSpecValue(vehicle, "减震");
+    const facts = factsInSections(vehicle, ["减震系统"]).slice(0, 6);
+    return `${name}的减震配置是${shock || listText(facts)}。${facts.length ? `资料里还标注：${listText(facts)}。` : ""}门店讲法可以说：让客户现场坐一下、过个小坎感受，舒适性比单纯讲参数更直观。`;
+  }
+
+  const specs = (Array.isArray(vehicle?.specs) ? vehicle.specs : [])
+    .slice(0, 8)
+    .map(([label, value]) => `${label}：${value}`);
+  return `${name}当前核心配置是：${listText(specs)}。建议按客户用途继续追问，是接送孩子、买菜代步，还是载人载物，再对应推荐。`;
 };
 
 const normalizeGuideAnswer = (answer, question, vehicle = {}) => {
@@ -884,6 +957,28 @@ const buildPendingTrace = ({ question, vehicle = {}, binding = {}, provider = "l
   return trace;
 };
 
+const buildFallbackTrace = ({ question, vehicle = {}, binding = {}, provider = "config-fallback", reason = "" }) => {
+  const trace = buildTrace({ question, vehicle, binding, provider, configured: Boolean(binding?.apiKey) });
+  trace[trace.length - 1] = {
+    title: "生成产品回答",
+    detail: `工作流暂无有效回复，已使用当前车型配置回答${reason ? `：${compactText(reason, 80)}` : ""}`,
+    status: "done",
+  };
+  return trace;
+};
+
+const fallbackGuideResult = ({ question, vehicle = {}, binding = {}, provider = "config-fallback", reason = "" }) => {
+  const answer = normalizeGuideAnswer(fallbackGuideAnswer(question, vehicle), question, vehicle);
+  return {
+    answer,
+    provider,
+    bindingName: normalizeWorkflowName(binding.appName, ""),
+    appId: binding.appId ?? "",
+    configured: Boolean(binding?.apiKey),
+    trace: buildFallbackTrace({ question, vehicle, binding, provider, reason }),
+  };
+};
+
 const runDifyWorkflow = async ({ question, vehicle }, config) => {
   const difyQuestion = buildDifyQuestion(question, vehicle);
   const endpoint = config.workflowId
@@ -898,7 +993,7 @@ const runDifyWorkflow = async ({ question, vehicle }, config) => {
     user: config.user,
   };
 
-  const difyResponse = await fetch(endpoint, {
+  const difyResponse = await fetchDify(endpoint, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${config.apiKey}`,
@@ -935,7 +1030,7 @@ const runDifyChatflow = async ({ question, vehicle, conversationId = "" }, confi
     user: config.user,
   };
 
-  const difyResponse = await fetch(`${config.apiBaseUrl}/chat-messages`, {
+  const difyResponse = await fetchDify(`${config.apiBaseUrl}/chat-messages`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${config.apiKey}`,
@@ -964,12 +1059,22 @@ const runDifyGuide = async ({ question, vehicle, conversationId }) => {
   const binding = workflowConfig.bindings?.[vehicle?.id] ?? {};
   const config = difyConfig(binding);
   if (!config.apiKey) {
-    const bindingName = normalizeWorkflowName(binding.appName, "");
-    throw new Error(`${bindingName || vehicle?.name || "当前车型"}未配置Dify工作流 API Key`);
+    return fallbackGuideResult({ question, vehicle, binding, reason: "当前车型未配置工作流 API Key" });
   }
 
-  if (config.appType === "workflow") {
-    const result = await runDifyWorkflow({ question, vehicle }, config);
+  try {
+    if (config.appType === "workflow") {
+      const result = await runDifyWorkflow({ question, vehicle }, config);
+      if (!result.answer) throw new Error("Dify工作流没有返回内容");
+      return {
+        ...result,
+        bindingName: normalizeWorkflowName(binding.appName, ""),
+        appId: binding.appId ?? "",
+        trace: buildTrace({ question, vehicle, binding, provider: result.provider, payload: result.raw, configured: true }),
+      };
+    }
+
+    const result = await runDifyChatflow({ question, vehicle, conversationId }, config);
     if (!result.answer) throw new Error("Dify工作流没有返回内容");
     return {
       ...result,
@@ -977,16 +1082,9 @@ const runDifyGuide = async ({ question, vehicle, conversationId }) => {
       appId: binding.appId ?? "",
       trace: buildTrace({ question, vehicle, binding, provider: result.provider, payload: result.raw, configured: true }),
     };
+  } catch (error) {
+    return fallbackGuideResult({ question, vehicle, binding, reason: error.message });
   }
-
-  const result = await runDifyChatflow({ question, vehicle, conversationId }, config);
-  if (!result.answer) throw new Error("Dify工作流没有返回内容");
-  return {
-    ...result,
-    bindingName: normalizeWorkflowName(binding.appName, ""),
-    appId: binding.appId ?? "",
-    trace: buildTrace({ question, vehicle, binding, provider: result.provider, payload: result.raw, configured: true }),
-  };
 };
 
 const readSsePayloads = async (body, onPayload) => {
@@ -1080,7 +1178,7 @@ const runDifyWorkflowStream = async ({ question, vehicle }, config, binding, res
     user: config.user,
   };
 
-  const difyResponse = await fetch(endpoint, {
+  const difyResponse = await fetchDify(endpoint, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${config.apiKey}`,
@@ -1165,7 +1263,7 @@ const runDifyChatflowStream = async ({ question, vehicle, conversationId = "" },
     user: config.user,
   };
 
-  const difyResponse = await fetch(`${config.apiBaseUrl}/chat-messages`, {
+  const difyResponse = await fetchDify(`${config.apiBaseUrl}/chat-messages`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${config.apiKey}`,
@@ -1259,8 +1357,13 @@ const streamDifyGuide = async ({ question, vehicle, conversationId }, response) 
     await runDifyChatflowStream({ question, vehicle, conversationId }, config, binding, response);
     response.end();
   } catch (error) {
-    sendStream(response, "error", {
-      error: error.message,
+    const fallback = fallbackGuideResult({ question, vehicle, binding, reason: error.message });
+    sendStream(response, "trace", { trace: fallback.trace });
+    await streamText(response, fallback.answer);
+    sendStream(response, "done", {
+      answer: fallback.answer,
+      trace: fallback.trace,
+      fallback: true,
     });
     response.end();
   }
