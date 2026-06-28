@@ -92,6 +92,8 @@ const buildBasicAnswers = async (vehicle) => {
   const priceAnswer = `${vehicle.name}的价格口径是：${vehicle.dealerPolicy || `参考价格：${vehicle.price}`} 具体成交价要按门店配置、电池规格和当地政策确认。`
     .replace(/(确认。)\s+具体成交价要按门店配置、电池规格和当地政策确认。$/, "$1");
   return {
+    vehicle_name: vehicle.name,
+    greeting: `您好，我是${vehicle.name}智能客服，主要帮经销商快速查询这款车的价格、配置、续航、卖点、适合客户和门店导购话术。您可以直接问：多少钱、电机多少瓦、能跑多远，或者这款车适合什么客户。`,
     price: priceAnswer,
     motor: `${vehicle.name}的电机配置是${specValue(vehicle, "电机")}。控制器是${specValue(vehicle, "控制器")}。整车电压是${specValue(vehicle, "电压")}。门店讲法可以说：这套动力主要适合日常代步、接送孩子和买菜，参数以实车和最新配置单为准。`,
     range: `${vehicle.name}的续航要看电池规格。${[...rangeFacts.slice(0, 5), ...batteryFacts.slice(0, 3)].join("；") || "当前资料未标注完整续航参数"}。实际能跑多远会受载重、路况、天气和骑行习惯影响，按客户日常里程来配电池更稳。`,
@@ -160,12 +162,23 @@ def _is_running_cost_content(text):
     raw = text or ""
     return any(word in raw for word in ["充电", "充满", "电费", "几度电", "一度电", "充一次", "上牌", "保险", "保养", "维修", "换电池"])
 
+def _is_greeting_query(text):
+    raw = re.sub(r"[\\s，。！？!?~～,.、]", "", text or "")
+    vehicle_name = BASIC_ANSWERS.get("vehicle_name") or ""
+    if vehicle_name:
+        raw = raw.replace(vehicle_name, "")
+    greetings = ["你好", "您好", "你好呀", "您好呀", "在吗", "在不在", "哈喽", "hello", "hi", "嗨"]
+    thanks = ["谢谢", "感谢", "好的", "好", "嗯", "收到"]
+    return raw.lower() in greetings or raw in thanks
+
 def main(results, query) -> dict:
     best_answer = ""
     best_rank = -1.0
     raw_query = query or ""
     q = _norm(raw_query)
     vehicle_price_query = _is_vehicle_price_query(raw_query)
+    if _is_greeting_query(raw_query) and BASIC_ANSWERS.get("greeting"):
+        return {"can_direct": "true", "direct_answer": BASIC_ANSWERS.get("greeting"), "score": 9}
     if vehicle_price_query and BASIC_ANSWERS.get("price"):
         return {
             "can_direct": "true",
