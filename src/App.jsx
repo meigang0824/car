@@ -671,27 +671,27 @@ function AiGuide({ vehicle, workflowBinding }) {
       hint: voiceSupported
         ? ""
         : "当前浏览器不支持语音输入",
-      action: voiceMode ? "关闭" : "开启",
+      action: voiceMode ? "停止" : "点击说话",
     },
     listening: {
       title: "正在听你说",
       hint: transcript || (shouldUseModelVoiceInput ? "请说一句完整问题，我会录音转文字" : "请直接提问，例如：电机用什么配置？"),
-      action: "关闭",
+      action: "停止",
     },
     recording: {
       title: "正在录音并转写",
       hint: transcript || "请说话，系统正在识别你的问题...",
-      action: "关闭",
+      action: "录音中",
     },
     thinking: {
       title: "已识别，正在整理产品资料",
       hint: transcript,
-      action: "关闭",
+      action: "处理中",
     },
     speaking: {
       title: `${vehicle.name} 智能客服正在语音回复`,
       hint: "播报结束后会继续听下一句",
-      action: "关闭",
+      action: "播报中",
     },
   }[voiceState];
 
