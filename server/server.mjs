@@ -544,21 +544,10 @@ const relevantVehicleFacts = (question, vehicle = {}) => {
 
 const buildDifyQuestion = (question, vehicle = {}) => {
   const raw = String(question ?? "").trim();
-  const vehicleName = String(vehicle?.name ?? "").trim();
-  const scopedQuestion = !vehicleName || raw.includes(vehicleName) ? raw : `${vehicleName} ${raw}`;
-  const hints = retrievalHints(raw, vehicle);
-  const hintText = hints.length ? `\n检索关键词：${hints.join("、")}` : "";
-  const intentText = isVehiclePriceQuestion(raw)
-    ? "\n回答约束：这是整车售价/门店报价问题。必须优先回答参考价格、展示价或门店价格口径；不要回答电机、电池、充电费用、续航或配置卖点，除非价格说完后作为一句补充。"
-    : "";
-  return `${scopedQuestion}${intentText}${hintText}${relevantVehicleFacts(raw, vehicle)}`.trim();
+  return raw;
 };
 
-const buildDifyQuery = (question, vehicle = {}) => {
-  const raw = String(question ?? "").trim();
-  const vehicleName = String(vehicle?.name ?? "").trim();
-  return !vehicleName || raw.includes(vehicleName) ? raw : `${vehicleName} ${raw}`;
-};
+const buildDifyQuery = (question) => String(question ?? "").trim();
 
 const parseDifyBody = (text) => {
   if (!text) return {};
