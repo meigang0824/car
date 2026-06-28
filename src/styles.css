@@ -2690,16 +2690,17 @@ body {
     overflow: hidden;
   }
 
-  .app-surface:has(.showroom-workspace) {
+  .app-surface.showroom-surface {
+    --showroom-scale: 0.86;
     width: 1180px;
-    height: calc(100vh / (100vw / 1180px));
+    height: calc(100vh / var(--showroom-scale));
     min-height: 760px;
-    transform: scale(calc(100vw / 1180px));
+    transform: scale(var(--showroom-scale));
     transform-origin: 0 0;
     grid-template-rows: 62px minmax(0, 1fr);
   }
 
-  .app-surface:has(.showroom-workspace) .topbar {
+  .app-surface.showroom-surface .topbar {
     height: 62px;
     grid-template-columns: 280px auto 112px minmax(160px, 190px) 170px;
     grid-template-areas: none;
@@ -2707,95 +2708,95 @@ body {
     gap: 14px;
   }
 
-  .app-surface:has(.showroom-workspace) .logo-wrap,
-  .app-surface:has(.showroom-workspace) .mode-switch,
-  .app-surface:has(.showroom-workspace) .sync-pill,
-  .app-surface:has(.showroom-workspace) .search-box,
-  .app-surface:has(.showroom-workspace) .user-pill {
+  .app-surface.showroom-surface .logo-wrap,
+  .app-surface.showroom-surface .mode-switch,
+  .app-surface.showroom-surface .sync-pill,
+  .app-surface.showroom-surface .search-box,
+  .app-surface.showroom-surface .user-pill {
     grid-area: auto;
   }
 
-  .app-surface:has(.showroom-workspace) .logo-wrap {
+  .app-surface.showroom-surface .logo-wrap {
     gap: 10px;
   }
 
-  .app-surface:has(.showroom-workspace) .logo-mark {
+  .app-surface.showroom-surface .logo-mark {
     width: 42px;
     height: 36px;
     border-radius: 10px;
     font-size: 25px;
   }
 
-  .app-surface:has(.showroom-workspace) .logo-wrap strong {
+  .app-surface.showroom-surface .logo-wrap strong {
     font-size: 18px;
   }
 
-  .app-surface:has(.showroom-workspace) .logo-wrap span {
+  .app-surface.showroom-surface .logo-wrap span {
     font-size: 12px;
   }
 
-  .app-surface:has(.showroom-workspace) .mode-switch {
+  .app-surface.showroom-surface .mode-switch {
     padding: 4px;
     border-radius: 14px;
   }
 
-  .app-surface:has(.showroom-workspace) .mode-switch button {
+  .app-surface.showroom-surface .mode-switch button {
     height: 32px;
     padding: 0 18px;
     border-radius: 10px;
     font-size: 14px;
   }
 
-  .app-surface:has(.showroom-workspace) .sync-pill {
+  .app-surface.showroom-surface .sync-pill {
     height: 30px;
     padding: 0 10px;
     font-size: 12px;
   }
 
-  .app-surface:has(.showroom-workspace) .search-box {
+  .app-surface.showroom-surface .search-box {
     grid-column: 4;
     height: 36px;
     padding: 0 16px;
     font-size: 14px;
   }
 
-  .app-surface:has(.showroom-workspace) .user-pill {
+  .app-surface.showroom-surface .user-pill {
     grid-column: 5;
     height: 42px;
     gap: 10px;
     font-size: 14px;
   }
 
-  .app-surface:has(.showroom-workspace) .avatar {
+  .app-surface.showroom-surface .avatar {
     width: 34px;
     height: 34px;
   }
 
-  .app-surface:has(.showroom-workspace) .user-pill small {
+  .app-surface.showroom-surface .user-pill small {
     font-size: 12px;
   }
 
-  .app-surface:has(.showroom-workspace) .workspace {
+  .app-surface.showroom-surface .workspace {
     padding: 22px 28px 14px;
   }
 
-  .app-surface:has(.showroom-workspace) .showroom-grid {
+  .app-surface.showroom-surface .showroom-grid {
     grid-template-columns: minmax(220px, 264px) minmax(500px, 1fr) minmax(360px, 400px);
     gap: 20px;
     overflow: hidden;
   }
 
-  .app-surface:has(.showroom-workspace) .vehicle-rail {
+  .app-surface.showroom-surface .vehicle-rail {
     padding: 22px 14px;
     gap: 18px;
     border-radius: 16px;
   }
 
-  .app-surface:has(.showroom-workspace) .panel-title {
+  .app-surface.showroom-surface .panel-title {
     font-size: 18px;
   }
 
-  .app-surface:has(.showroom-workspace) .vehicle-list {
+  .app-surface.showroom-surface .vehicle-list {
     grid-template-columns: none;
     gap: 12px;
     overflow-y: auto;
@@ -2803,7 +2804,7 @@ body {
     padding-right: 4px;
   }
 
-  .app-surface:has(.showroom-workspace) .vehicle-card {
+  .app-surface.showroom-surface .vehicle-card {
     min-height: 122px;
     grid-template-columns: 108px 1fr;
     gap: 8px;
@@ -2811,54 +2812,54 @@ body {
     border-radius: 12px;
   }
 
-  .app-surface:has(.showroom-workspace) .vehicle-card .sprite {
+  .app-surface.showroom-surface .vehicle-card .sprite {
     width: 108px;
     height: 82px;
     min-height: 0;
   }
 
-  .app-surface:has(.showroom-workspace) .vehicle-copy strong {
+  .app-surface.showroom-surface .vehicle-copy strong {
     font-size: 15px;
   }
 
-  .app-surface:has(.showroom-workspace) .vehicle-copy small {
+  .app-surface.showroom-surface .vehicle-copy small {
     margin: 7px 0;
     font-size: 14px;
   }
 
-  .app-surface:has(.showroom-workspace) .vehicle-copy em {
+  .app-surface.showroom-surface .vehicle-copy em {
     padding: 2px 7px;
     font-size: 13px;
   }
 
-  .app-surface:has(.showroom-workspace) .stage-panel {
+  .app-surface.showroom-surface .stage-panel {
     padding: 18px 24px 20px;
     grid-template-rows: auto minmax(340px, 1fr) auto auto;
     gap: 14px;
     border-radius: 18px;
   }
 
-  .app-surface:has(.showroom-workspace) .stage-head h1 {
+  .app-surface.showroom-surface .stage-head h1 {
     font-size: 39px;
   }
 
-  .app-surface:has(.showroom-workspace) .stage-head p {
+  .app-surface.showroom-surface .stage-head p {
     margin-top: 12px;
     font-size: 16px;
   }
 
-  .app-surface:has(.showroom-workspace) .product-canvas {
+  .app-surface.showroom-surface .product-canvas {
     min-height: 340px;
     border-radius: 18px;
   }
 
-  .app-surface:has(.showroom-workspace) .thumb-strip {
+  .app-surface.showroom-surface .thumb-strip {
     min-height: 98px;
     gap: 10px;
     padding: 2px 8px 8px;
   }
 
-  .app-surface:has(.showroom-workspace) .thumb-strip button {
+  .app-surface.showroom-surface .thumb-strip button {
     flex-basis: 96px;
     height: 88px;
     min-height: 88px;
@@ -2868,123 +2869,123 @@ body {
     font-size: 11px;
   }
 
-  .app-surface:has(.showroom-workspace) .thumb-strip img {
+  .app-surface.showroom-surface .thumb-strip img {
     height: 52px;
   }
 
-  .app-surface:has(.showroom-workspace) .spec-summary {
+  .app-surface.showroom-surface .spec-summary {
     min-height: 116px;
     grid-template-columns: repeat(4, minmax(0, 1fr));
     border-radius: 14px;
   }
 
-  .app-surface:has(.showroom-workspace) .spec-summary div {
+  .app-surface.showroom-surface .spec-summary div {
     padding: 7px 16px;
   }
 
-  .app-surface:has(.showroom-workspace) .spec-summary strong {
+  .app-surface.showroom-surface .spec-summary strong {
     margin-bottom: 3px;
     font-size: 14px;
   }
 
-  .app-surface:has(.showroom-workspace) .spec-summary span {
+  .app-surface.showroom-surface .spec-summary span {
     font-size: 12px;
   }
 
-  .app-surface:has(.showroom-workspace) .ai-panel {
+  .app-surface.showroom-surface .ai-panel {
     border-radius: 20px;
   }
 
-  .app-surface:has(.showroom-workspace) .ai-head {
+  .app-surface.showroom-surface .ai-head {
     grid-template-columns: 58px minmax(0, 1fr) 40px 40px;
     gap: 10px;
     padding: 18px;
   }
 
-  .app-surface:has(.showroom-workspace) .ai-head button {
+  .app-surface.showroom-surface .ai-head button {
     width: 40px;
     height: 40px;
     border-radius: 14px;
   }
 
-  .app-surface:has(.showroom-workspace) .bot-avatar {
+  .app-surface.showroom-surface .bot-avatar {
     width: 54px;
     height: 54px;
     border-radius: 19px;
   }
 
-  .app-surface:has(.showroom-workspace) .ai-head strong {
+  .app-surface.showroom-surface .ai-head strong {
     margin-bottom: 4px;
     font-size: 17px;
   }
 
-  .app-surface:has(.showroom-workspace) .ai-head span {
+  .app-surface.showroom-surface .ai-head span {
     font-size: 13px;
   }
 
-  .app-surface:has(.showroom-workspace) .ai-head em {
+  .app-surface.showroom-surface .ai-head em {
     margin-top: 6px;
     padding: 3px 8px;
     font-size: 11px;
   }
 
-  .app-surface:has(.showroom-workspace) .chat-log {
+  .app-surface.showroom-surface .chat-log {
     gap: 18px;
     padding: 18px 20px 14px;
   }
 
-  .app-surface:has(.showroom-workspace) .message {
+  .app-surface.showroom-surface .message {
     gap: 12px;
   }
 
-  .app-surface:has(.showroom-workspace) .mini-bot {
+  .app-surface.showroom-surface .mini-bot {
     width: 32px;
     height: 32px;
     border-radius: 12px;
     border-width: 3px;
   }
 
-  .app-surface:has(.showroom-workspace) .message.user div {
+  .app-surface.showroom-surface .message.user div {
     max-width: 282px;
     padding: 12px 50px 12px 16px;
     border-radius: 16px 16px 5px 16px;
   }
 
-  .app-surface:has(.showroom-workspace) .message.ai div:last-child {
+  .app-surface.showroom-surface .message.ai div:last-child {
     max-width: 304px;
     padding: 14px 16px;
     border-radius: 6px 16px 16px 16px;
   }
 
-  .app-surface:has(.showroom-workspace) .message strong {
+  .app-surface.showroom-surface .message strong {
     margin-bottom: 8px;
     font-size: 14px;
   }
 
-  .app-surface:has(.showroom-workspace) .message p {
+  .app-surface.showroom-surface .message p {
     font-size: 14px;
     line-height: 1.74;
   }
 
-  .app-surface:has(.showroom-workspace) .message time {
+  .app-surface.showroom-surface .message time {
     top: 14px;
     right: 13px;
     font-size: 11px;
   }
 
-  .app-surface:has(.showroom-workspace) .quick-prompts {
+  .app-surface.showroom-surface .quick-prompts {
     gap: 10px;
     padding: 10px 18px 12px;
     scroll-padding-inline: 18px;
   }
 
-  .app-surface:has(.showroom-workspace) .quick-prompts button {
+  .app-surface.showroom-surface .quick-prompts button {
     min-height: 38px;
     padding: 0 16px;
     font-size: 13px;
   }
 
-  .app-surface:has(.showroom-workspace) .voice-card {
+  .app-surface.showroom-surface .voice-card {
     min-height: 118px;
     grid-template-columns: 40px minmax(0, 1fr) 72px;
     gap: 10px 14px;
@@ -2993,21 +2994,21 @@ body {
     border-radius: 18px;
   }
 
-  .app-surface:has(.showroom-workspace) .voice-bot {
+  .app-surface.showroom-surface .voice-bot {
     width: 40px;
     height: 40px;
     border-radius: 14px;
   }
 
-  .app-surface:has(.showroom-workspace) .voice-copy strong {
+  .app-surface.showroom-surface .voice-copy strong {
     font-size: 14px;
   }
 
-  .app-surface:has(.showroom-workspace) .voice-copy span {
+  .app-surface.showroom-surface .voice-copy span {
     font-size: 12px;
   }
 
-  .app-surface:has(.showroom-workspace) .talk-btn {
+  .app-surface.showroom-surface .talk-btn {
     width: 70px;
     min-height: 86px;
     grid-template-rows: 60px auto;
@@ -3015,44 +3016,66 @@ body {
     font-size: 14px;
   }
 
-  .app-surface:has(.showroom-workspace) .talk-icon {
+  .app-surface.showroom-surface .talk-icon {
     width: 56px;
     height: 56px;
     border-width: 3px;
   }
 
-  .app-surface:has(.showroom-workspace) .chat-input {
+  .app-surface.showroom-surface .chat-input {
     grid-template-columns: minmax(0, 1fr) 84px;
     gap: 14px;
     margin: 10px 18px 18px;
   }
 
-  .app-surface:has(.showroom-workspace) .chat-input input {
+  .app-surface.showroom-surface .chat-input input {
     min-height: 48px;
     padding: 0 20px;
     font-size: 16px;
   }
 
-  .app-surface:has(.showroom-workspace) .chat-input button {
+  .app-surface.showroom-surface .chat-input button {
     min-height: 48px;
     font-size: 16px;
   }
 }
 
 @media (min-width: 641px) and (max-width: 820px) {
-  .app-surface:has(.showroom-workspace) .vehicle-card {
+  .app-surface.showroom-surface {
+    --showroom-scale: 0.65;
+  }
+
+  .app-surface.showroom-surface .vehicle-card {
     grid-template-columns: 1fr;
     align-content: start;
     min-height: 150px;
   }
 
-  .app-surface:has(.showroom-workspace) .vehicle-card .sprite {
+  .app-surface.showroom-surface .vehicle-card .sprite {
     width: 100%;
     height: 92px;
   }
 
-  .app-surface:has(.showroom-workspace) .vehicle-copy small {
+  .app-surface.showroom-surface .vehicle-copy small {
     margin: 4px 0;
+  }
+}
+
+@media (min-width: 821px) and (max-width: 980px) {
+  .app-surface.showroom-surface {
+    --showroom-scale: 0.78;
+  }
+}
+
+@media (min-width: 981px) and (max-width: 1100px) {
+  .app-surface.showroom-surface {
+    --showroom-scale: 0.86;
+  }
+}
+
+@media (min-width: 1101px) and (max-width: 1180px) {
+  .app-surface.showroom-surface {
+    --showroom-scale: 0.95;
   }
 }
 

@@ -1822,7 +1822,7 @@ export function App() {
 
   return (
     <div className="tablet-shell">
-      <div className="app-surface">
+      <div className={`app-surface ${mode === "showroom" ? "showroom-surface" : "config-surface"}`}>
         <AppHeader mode={mode} setMode={setMode} query={query} setQuery={setQuery} apiStatus={apiStatus} />
         <div className={`workspace ${mode === "showroom" ? "showroom-workspace" : "config-workspace"}`}>
           {mode === "showroom" && (
