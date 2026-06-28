@@ -23,7 +23,7 @@ import "./styles.css";
 
 const STORAGE_KEY = "ev-trike-platform-config-v1";
 const UI_SCALE_KEY = "ev-trike-platform-ui-scale";
-const UI_SCALE_STEPS = [0.88, 0.94, 1, 1.06];
+const UI_SCALE_STEPS = [0.5, 0.62, 0.74, 0.88, 0.94, 1, 1.06];
 const API_CATALOG = "/api/catalog";
 const API_RESET = "/api/reset";
 const API_AI_GUIDE_STREAM = "/api/ai-guide/stream";
