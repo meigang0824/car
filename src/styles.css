@@ -3079,6 +3079,259 @@ body {
   }
 }
 
+@media (min-width: 1181px) and (max-height: 760px) {
+  .app-surface.showroom-surface {
+    grid-template-rows: 52px minmax(0, 1fr);
+    min-height: 100vh;
+  }
+
+  .app-surface.showroom-surface .topbar {
+    height: 52px;
+    padding: 0 24px;
+  }
+
+  .app-surface.showroom-surface .logo-mark {
+    width: 36px;
+    height: 32px;
+    font-size: 22px;
+  }
+
+  .app-surface.showroom-surface .logo-wrap strong {
+    font-size: 17px;
+  }
+
+  .app-surface.showroom-surface .logo-wrap span {
+    font-size: 11px;
+  }
+
+  .app-surface.showroom-surface .mode-switch button {
+    height: 30px;
+  }
+
+  .app-surface.showroom-surface .sync-pill,
+  .app-surface.showroom-surface .search-box {
+    height: 32px;
+  }
+
+  .app-surface.showroom-surface .user-pill {
+    height: 38px;
+  }
+
+  .app-surface.showroom-surface .workspace {
+    padding: 16px 28px 10px;
+  }
+
+  .app-surface.showroom-surface .vehicle-rail {
+    padding: 18px 14px;
+    gap: 12px;
+  }
+
+  .app-surface.showroom-surface .vehicle-list {
+    gap: 9px;
+  }
+
+  .app-surface.showroom-surface .vehicle-card {
+    min-height: 106px;
+    grid-template-columns: 112px 1fr;
+    padding: 8px;
+  }
+
+  .app-surface.showroom-surface .vehicle-card .sprite {
+    width: 112px;
+    height: 74px;
+  }
+
+  .app-surface.showroom-surface .vehicle-copy small {
+    margin: 5px 0;
+    line-height: 1.3;
+  }
+
+  .app-surface.showroom-surface .stage-panel {
+    padding: 12px 24px 14px;
+    grid-template-rows: auto minmax(212px, 1fr) auto auto;
+    gap: 7px;
+  }
+
+  .app-surface.showroom-surface .stage-head h1 {
+    font-size: 31px;
+  }
+
+  .app-surface.showroom-surface .stage-head p {
+    margin-top: 6px;
+    font-size: 13px;
+    line-height: 1.28;
+  }
+
+  .app-surface.showroom-surface .tag-row {
+    gap: 8px;
+    margin-left: 10px;
+    vertical-align: 5px;
+  }
+
+  .app-surface.showroom-surface .tag {
+    padding: 4px 8px;
+    font-size: 12px;
+  }
+
+  .app-surface.showroom-surface .product-canvas {
+    min-height: 212px;
+  }
+
+  .app-surface.showroom-surface .hero-sprite {
+    width: min(430px, 92%);
+    height: 206px;
+    min-height: 0;
+    border-radius: 16px;
+  }
+
+  .app-surface.showroom-surface .carousel-arrow {
+    width: 38px;
+    height: 38px;
+  }
+
+  .app-surface.showroom-surface .slide-caption {
+    bottom: 8px;
+    padding: 5px 12px;
+    font-size: 12px;
+  }
+
+  .app-surface.showroom-surface .thumb-strip {
+    min-height: 68px;
+    gap: 8px;
+    padding-bottom: 4px;
+  }
+
+  .app-surface.showroom-surface .thumb-strip button {
+    flex-basis: 78px;
+    height: 62px;
+    min-height: 62px;
+    grid-template-rows: 36px auto;
+    padding: 4px;
+    font-size: 10px;
+  }
+
+  .app-surface.showroom-surface .thumb-strip img {
+    height: 36px;
+  }
+
+  .app-surface.showroom-surface .spec-summary {
+    min-height: 124px;
+  }
+
+  .app-surface.showroom-surface .spec-summary div {
+    padding: 5px 10px;
+  }
+
+  .app-surface.showroom-surface .spec-summary strong {
+    margin-bottom: 2px;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+  }
+
+  .app-surface.showroom-surface .spec-summary span {
+    font-size: 10px;
+    line-height: 1.04;
+  }
+
+  .app-surface.showroom-surface .ai-head {
+    grid-template-columns: 50px minmax(0, 1fr) 36px 36px;
+    gap: 8px;
+    padding: 14px 16px;
+  }
+
+  .app-surface.showroom-surface .bot-avatar {
+    width: 50px;
+    height: 50px;
+  }
+
+  .app-surface.showroom-surface .ai-head button {
+    width: 36px;
+    height: 36px;
+  }
+
+  .app-surface.showroom-surface .ai-head strong {
+    font-size: 16px;
+  }
+
+  .app-surface.showroom-surface .chat-log {
+    gap: 14px;
+    padding: 14px 20px 10px;
+  }
+
+  .app-surface.showroom-surface .message.ai div:last-child {
+    padding: 12px 15px;
+  }
+
+  .app-surface.showroom-surface .message p {
+    font-size: 13px;
+    line-height: 1.66;
+  }
+
+  .app-surface.showroom-surface .quick-prompts {
+    padding: 8px 18px 10px;
+  }
+
+  .app-surface.showroom-surface .quick-prompts button {
+    min-height: 34px;
+    padding: 0 14px;
+    font-size: 12px;
+  }
+
+  .app-surface.showroom-surface .voice-card {
+    min-height: 96px;
+    grid-template-columns: 36px minmax(0, 1fr) 62px;
+    margin: 0 18px 10px;
+    padding: 12px 14px;
+  }
+
+  .app-surface.showroom-surface .voice-bot {
+    width: 36px;
+    height: 36px;
+  }
+
+  .app-surface.showroom-surface .voice-copy strong {
+    font-size: 13px;
+  }
+
+  .app-surface.showroom-surface .wave {
+    height: 28px;
+  }
+
+  .app-surface.showroom-surface .talk-btn {
+    width: 60px;
+    min-height: 72px;
+    grid-template-rows: 48px auto;
+    font-size: 12px;
+  }
+
+  .app-surface.showroom-surface .talk-icon {
+    width: 48px;
+    height: 48px;
+  }
+
+  .app-surface.showroom-surface .voice-select {
+    margin-top: 5px;
+  }
+
+  .app-surface.showroom-surface .voice-select select {
+    height: 34px;
+    padding: 0 30px 0 12px;
+    font-size: 12px;
+  }
+
+  .app-surface.showroom-surface .ask-bar {
+    grid-template-columns: minmax(0, 1fr) 78px;
+    gap: 12px;
+    margin: 8px 18px 14px;
+  }
+
+  .app-surface.showroom-surface .ask-bar input,
+  .app-surface.showroom-surface .ask-bar button {
+    min-height: 44px;
+    font-size: 15px;
+  }
+}
+
 @media (max-width: 900px) {
   .split-board {
     grid-template-columns: 1fr;
