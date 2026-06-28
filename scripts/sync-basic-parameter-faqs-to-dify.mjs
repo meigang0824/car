@@ -298,6 +298,9 @@ for (const line of segmentRows) {
   try {
     keywords = JSON.parse(keywordText);
   } catch {}
+  if (!Array.isArray(keywords)) {
+    keywords = Object.keys(keywords ?? {});
+  }
   for (const keyword of keywords) {
     if (!keyword) continue;
     const table = tables.get(datasetId) ?? {};

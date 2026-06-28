@@ -642,6 +642,12 @@ const buildDifyQuestion = (question, vehicle = {}) => {
   return `${scopedQuestion}${intentText}${hintText}${relevantVehicleFacts(raw, vehicle)}`.trim();
 };
 
+const buildDifyQuery = (question, vehicle = {}) => {
+  const raw = String(question ?? "").trim();
+  const vehicleName = String(vehicle?.name ?? "").trim();
+  return !vehicleName || raw.includes(vehicleName) ? raw : `${vehicleName} ${raw}`;
+};
+
 const parseDifyBody = (text) => {
   if (!text) return {};
   try {
@@ -1019,12 +1025,13 @@ const runDifyWorkflow = async ({ question, vehicle }, config) => {
 
 const runDifyChatflow = async ({ question, vehicle, conversationId = "" }, config) => {
   const difyQuestion = buildDifyQuestion(question, vehicle);
+  const difyQuery = buildDifyQuery(question, vehicle);
   const payload = {
     inputs: {
       ...guideInputs(difyQuestion, vehicle),
       original_question: question,
     },
-    query: difyQuestion,
+    query: difyQuery,
     response_mode: "blocking",
     conversation_id: conversationId,
     user: config.user,
@@ -1159,6 +1166,7 @@ const extractStreamDelta = (payload) => {
   if (typeof payload?.text === "string") return payload.text;
   if (typeof payload?.data?.text === "string") return payload.data.text;
   if (typeof payload?.data?.answer === "string") return payload.data.answer;
+  if (typeof payload?.data?.outputs?.answer === "string") return payload.data.outputs.answer;
   return "";
 };
 
@@ -1252,12 +1260,13 @@ const runDifyWorkflowStream = async ({ question, vehicle }, config, binding, res
 
 const runDifyChatflowStream = async ({ question, vehicle, conversationId = "" }, config, binding, response) => {
   const difyQuestion = buildDifyQuestion(question, vehicle);
+  const difyQuery = buildDifyQuery(question, vehicle);
   const payload = {
     inputs: {
       ...guideInputs(difyQuestion, vehicle),
       original_question: question,
     },
-    query: difyQuestion,
+    query: difyQuery,
     response_mode: "streaming",
     conversation_id: conversationId,
     user: config.user,
@@ -1291,9 +1300,13 @@ const runDifyChatflowStream = async ({ question, vehicle, conversationId = "" },
     messageId = payloadChunk.message_id ?? messageId;
 
     const delta = extractStreamDelta(payloadChunk);
-    if ((payloadChunk.event === "message" || payloadChunk.event === "agent_message") && delta) {
-      answer += delta;
-      if (!holdDeltas) deltaWriter.push(delta);
+    const isAnswerNode = payloadChunk.event === "node_finished" && payloadChunk.data?.node_type === "answer";
+    if ((payloadChunk.event === "message" || payloadChunk.event === "agent_message" || isAnswerNode) && delta) {
+      const duplicateDelta = answer && (answer.includes(delta) || delta.includes(answer));
+      if (!duplicateDelta) {
+        answer += delta;
+        if (!holdDeltas) deltaWriter.push(delta);
+      }
     }
 
     if (payloadChunk.event === "message_end" || payloadChunk.event === "workflow_finished") {
