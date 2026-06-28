@@ -151,6 +151,24 @@ def _answer(content):
             return m.group(1).strip()
     return ""
 
+def _dedupe_sentences(text):
+    raw = (text or "").strip()
+    if not raw:
+        return ""
+    parts = re.split(r"(?<=[。！？!?；;])", raw)
+    seen = set()
+    output = []
+    for part in parts:
+        item = part.strip()
+        if not item:
+            continue
+        key = re.sub(r"\\s+", "", item)
+        if key in seen:
+            continue
+        seen.add(key)
+        output.append(item)
+    return "".join(output) if output else raw
+
 def _is_vehicle_price_query(text):
     raw = text or ""
     asks_price = any(word in raw for word in ["多少钱", "价格", "报价", "标价", "成交价", "活动价", "怎么卖", "车价", "售价"])
@@ -171,13 +189,38 @@ def _is_greeting_query(text):
     thanks = ["谢谢", "感谢", "好的", "好", "嗯", "收到"]
     return raw.lower() in greetings or raw in thanks
 
+def _is_help_query(text):
+    raw = re.sub(r"[\\s，。！？!?~～,.、]", "", text or "")
+    vehicle_name = BASIC_ANSWERS.get("vehicle_name") or ""
+    if vehicle_name:
+        raw = raw.replace(vehicle_name, "")
+    return any(word in raw for word in [
+        "你可以帮我干什么", "你能帮我干什么", "你会什么", "你能做什么", "你有什么用",
+        "可以问什么", "能问什么", "怎么用", "怎么提问", "介绍一下你", "你是谁",
+        "你是干嘛的", "你的功能", "能帮我什么", "你能回答什么"
+    ])
+
+def _question_similarity(query, question):
+    q = _norm(query)
+    target = _norm(question)
+    if not q or not target:
+        return 0.0
+    if q in target or target in q:
+        return 1.0
+    q_chars = set(q)
+    target_chars = set(target)
+    if not q_chars or not target_chars:
+        return 0.0
+    return len(q_chars & target_chars) / max(len(q_chars), len(target_chars))
+
 def main(results, query) -> dict:
     best_answer = ""
     best_rank = -1.0
+    best_similarity = 0.0
     raw_query = query or ""
     q = _norm(raw_query)
     vehicle_price_query = _is_vehicle_price_query(raw_query)
-    if _is_greeting_query(raw_query) and BASIC_ANSWERS.get("greeting"):
+    if (_is_greeting_query(raw_query) or _is_help_query(raw_query)) and BASIC_ANSWERS.get("greeting"):
         return {"can_direct": "true", "direct_answer": BASIC_ANSWERS.get("greeting"), "score": 9}
     if vehicle_price_query and BASIC_ANSWERS.get("price"):
         return {
@@ -222,24 +265,90 @@ def main(results, query) -> dict:
             continue
         rank = _score(item)
         question = _norm(_question(content))
+        similarity = _question_similarity(raw_query, question)
         if question:
             overlap = len(set(q) & set(question))
-            rank += min(overlap / 80.0, 0.4)
+            rank += min(overlap / 120.0, 0.25)
         if vehicle_price_query and any(word in content for word in ["门店标价", "参考价格", "建议成交价", "价格口径"]):
             rank += 0.8
         if rank > best_rank:
             best_rank = rank
-            best_answer = answer
+            best_similarity = similarity
+            best_answer = _dedupe_sentences(answer)
 
-    # Dify retriever scores above ~0.25 have been reliable for these curated FAQ datasets.
-    # Prefer the FAQ answer so common parameter questions avoid the slow LLM branch.
-    can_direct = bool(best_answer and best_rank >= 0.25)
+    # Only direct-answer near-exact FAQ matches. Low-similarity hits must continue to the LLM node.
+    can_direct = bool(best_answer and (best_similarity >= 0.68 or best_rank >= 0.82))
     return {
         "can_direct": "true" if can_direct else "false",
         "direct_answer": best_answer if can_direct else "",
         "score": best_rank if best_rank > 0 else 0,
     }
 `.trim();
+
+const startVariables = [
+  ["question", "用户问题", "paragraph"],
+  ["original_question", "原始问题", "paragraph"],
+  ["vehicle_name", "车型名称", "text-input"],
+  ["vehicle_series", "车型系列", "text-input"],
+  ["vehicle_price", "价格口径", "text-input"],
+  ["vehicle_inventory", "库存", "text-input"],
+  ["vehicle_slogan", "车型卖点", "paragraph"],
+  ["vehicle_policy", "门店政策", "paragraph"],
+  ["vehicle_specs", "后台参数", "paragraph"],
+  ["vehicle_facts", "当前车型资料", "paragraph"],
+  ["vehicle_context", "车型完整配置", "paragraph"],
+].map(([variable, label, type]) => ({
+  variable,
+  label,
+  type,
+  required: false,
+  max_length: 20000,
+  options: [],
+}));
+
+const strictSalesPrompt = `# 角色
+
+你是电动三轮车门店的智能客服，也是拥有10年以上门店销售经验的金牌导购培训师。
+
+你的使用对象是经销商，不是终端客户。你的任务是帮经销商快速了解车型参数、配置卖点、适合客户和门店话术。
+
+---
+
+# 当前车型资料
+
+车型名称：{{#start.vehicle_name#}}
+车型系列：{{#start.vehicle_series#}}
+价格口径：{{#start.vehicle_price#}}
+库存：{{#start.vehicle_inventory#}}
+车型卖点：{{#start.vehicle_slogan#}}
+门店政策：{{#start.vehicle_policy#}}
+后台参数：{{#start.vehicle_specs#}}
+当前问题相关资料：{{#start.vehicle_facts#}}
+
+---
+
+# 回答原则
+
+1. 只回答电动三轮车相关内容，禁止写汽车、燃油车、轿车、SUV、1.5T、发动机、CarPlay、HiCar、自适应巡航等资料里没有的配置。
+2. 优先使用“当前车型资料”和知识库检索结果。知识库没命中时，也要根据当前车型资料自然回答。
+3. 资料没有明确写的参数、品牌、功能、质保、合规承诺，不要编造；要说“当前资料未标注，建议以厂家最新配置单、实车和门店政策为准”。
+4. 参数类问题先直接给参数，再补一句导购讲法。
+5. 能力/闲聊类问题，比如“你可以帮我干什么”，要回答你能帮经销商查价格、配置、续航、卖点、适合客户、竞品对比和门店话术。
+6. 不要输出“知识库未命中”“范围回复”“我无法回答”这类生硬话。
+
+---
+
+# 写作风格
+
+像真实门店客服聊天，短句、自然、口语化。不堆参数，不写说明书，不夸大宣传，不攻击竞品。
+
+禁止使用：“本产品”“采用先进技术”“赋能”“行业领先”“极致体验”等AI和营销腔。
+
+如果用户要导购话术，按这个逻辑组织：
+
+引导客户 → 产品配置 → 配置优势 → 用户价值 → 使用场景 → 成交话术
+
+如果用户只是问一个参数，就不要套完整模板，直接回答。`;
 
 const ALWAYS_RELEVANT_CODE = `
 def main(results, query) -> dict:
@@ -285,6 +394,14 @@ for (const line of rows) {
   backups.push({ workflowId, appId, appName, version, graph });
 
   for (const node of graph.nodes ?? []) {
+    if (node.id === "start" && node.data?.type === "start") {
+      const existing = Array.isArray(node.data.variables) ? node.data.variables : [];
+      const byName = new Map(existing.map((item) => [item.variable, item]));
+      for (const item of startVariables) byName.set(item.variable, { ...(byName.get(item.variable) ?? {}), ...item });
+      node.data.variables = [...byName.values()];
+      changed = true;
+    }
+
     if (node.id === "parse_faq" && node.data?.type === "code") {
       node.data.code = directFaqCode(basicAnswers);
       node.data.desc = "FAQ命中时直接返回答案，避免常见参数问题进入慢LLM分支。";
@@ -313,6 +430,14 @@ for (const line of rows) {
       node.data.multiple_retrieval_config.reranking_enable = false;
       node.data.multiple_retrieval_config.top_k = Math.max(Number(node.data.multiple_retrieval_config.top_k) || 0, 8);
       retrievalNodes += 1;
+      changed = true;
+    }
+
+    if (node.data?.type === "llm" && Array.isArray(node.data.prompt_template)) {
+      node.data.prompt_template = node.data.prompt_template.map((item) => (
+        typeof item?.text === "string" ? { ...item, text: strictSalesPrompt } : item
+      ));
+      node.data.desc = "低相关FAQ不直答，统一结合当前车型资料和检索结果生成回答。";
       changed = true;
     }
   }

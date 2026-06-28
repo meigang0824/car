@@ -315,6 +315,7 @@ const guideInputs = (question, vehicle = {}) => ({
   vehicle_slogan: vehicle?.slogan ?? "",
   vehicle_policy: vehicle?.dealerPolicy ?? "",
   vehicle_specs: JSON.stringify(vehicle?.specs ?? []),
+  vehicle_facts: relevantVehicleFacts(question, vehicle),
   vehicle_context: JSON.stringify(vehicle ?? {}),
 });
 
@@ -1130,6 +1131,30 @@ const extractStreamDelta = (payload) => {
 
 const extractWorkflowOutput = (payload) => findWorkflowText(payload) || payload?.data?.outputs?.answer || payload?.data?.outputs?.text || "";
 
+const compactRepeatedAnswer = (current = "", next = "") => {
+  const existing = String(current ?? "");
+  const incoming = String(next ?? "");
+  if (!incoming) return existing;
+  if (!existing) return incoming;
+  if (existing.includes(incoming)) return existing;
+  if (incoming.includes(existing)) return incoming;
+
+  const normalize = (value) => String(value).replace(/\s+/g, "");
+  const existingHead = normalize(existing).slice(0, 80);
+  const incomingHead = normalize(incoming).slice(0, 80);
+  if (existingHead.length >= 24 && incomingHead.startsWith(existingHead.slice(0, 24))) return incoming;
+
+  let overlap = 0;
+  const max = Math.min(existing.length, incoming.length);
+  for (let size = Math.min(max, 500); size >= 20; size -= 1) {
+    if (existing.endsWith(incoming.slice(0, size))) {
+      overlap = size;
+      break;
+    }
+  }
+  return `${existing}${incoming.slice(overlap)}`;
+};
+
 const runDifyWorkflowStream = async ({ question, vehicle }, config, binding, response) => {
   const difyQuestion = buildDifyQuestion(question, vehicle);
   const endpoint = config.workflowId
@@ -1171,7 +1196,7 @@ const runDifyWorkflowStream = async ({ question, vehicle }, config, binding, res
 
     const delta = extractStreamDelta(payloadChunk);
     if ((payloadChunk.event === "text_chunk" || payloadChunk.event === "message" || payloadChunk.event === "agent_message") && delta) {
-      answer += delta;
+      answer = compactRepeatedAnswer(answer, delta);
       if (!holdDeltas) deltaWriter.push(delta);
     }
 
@@ -1259,12 +1284,16 @@ const runDifyChatflowStream = async ({ question, vehicle, conversationId = "" },
 
     const delta = extractStreamDelta(payloadChunk);
     const isAnswerNode = payloadChunk.event === "node_finished" && payloadChunk.data?.node_type === "answer";
-    if ((payloadChunk.event === "message" || payloadChunk.event === "agent_message" || isAnswerNode) && delta) {
-      const duplicateDelta = answer && (answer.includes(delta) || delta.includes(answer));
-      if (!duplicateDelta) {
-        answer += delta;
-        if (!holdDeltas) deltaWriter.push(delta);
-      }
+    if (isAnswerNode && delta) {
+      answer = compactRepeatedAnswer(answer, delta);
+      return;
+    }
+
+    if ((payloadChunk.event === "message" || payloadChunk.event === "agent_message") && delta) {
+      const before = answer;
+      answer = compactRepeatedAnswer(answer, delta);
+      const appended = answer.startsWith(before) ? answer.slice(before.length) : "";
+      if (!holdDeltas && appended) deltaWriter.push(appended);
     }
 
     if (payloadChunk.event === "message_end" || payloadChunk.event === "workflow_finished") {
