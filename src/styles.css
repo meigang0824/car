@@ -261,7 +261,7 @@ body {
 }
 
 .showroom-workspace {
-  padding-bottom: max(14px, 10vh);
+  padding-bottom: max(14px, 12vh);
   overflow: hidden;
 }
 
@@ -2847,7 +2847,7 @@ body {
   }
 
   .app-surface.showroom-surface .workspace {
-    padding: 22px 28px max(14px, 10vh);
+    padding: 22px 28px max(14px, 12vh);
   }
 
   .app-surface.showroom-surface .showroom-grid {
