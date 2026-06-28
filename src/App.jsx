@@ -525,6 +525,9 @@ function AiGuide({ vehicle, workflowBinding }) {
   const speechBufferRef = useRef("");
   const speechActiveRef = useRef(false);
   const speakingRef = useRef(false);
+  const speechPreloadRef = useRef(null);
+  const speechPreloadPromiseRef = useRef(null);
+  const speechPreloadTokenRef = useRef(0);
   const audioRef = useRef(null);
   const knowledgeSignature = vehicleKnowledgeSignature(vehicle);
 
@@ -546,6 +549,7 @@ function AiGuide({ vehicle, workflowBinding }) {
     speechBufferRef.current = "";
     speechActiveRef.current = false;
     speakingRef.current = false;
+    clearSpeechPreload();
 
     const loadHistory = async () => {
       try {
@@ -782,16 +786,96 @@ function AiGuide({ vehicle, workflowBinding }) {
       .replace(/[#>`*_~-]/g, "")
       .replace(/\s+/g, " ");
 
+  function currentSpeechVoiceId() {
+    return selectedVoiceId || ttsConfig.voiceId;
+  }
+
+  function clearSpeechPreload() {
+    speechPreloadTokenRef.current += 1;
+    const preload = speechPreloadRef.current;
+    if (preload?.audioUrl && typeof URL !== "undefined") URL.revokeObjectURL(preload.audioUrl);
+    speechPreloadRef.current = null;
+    speechPreloadPromiseRef.current = null;
+  }
+
+  function isCurrentSpeechRequest(prepared, text) {
+    return prepared?.text === text
+      && prepared?.provider === ttsConfig.provider
+      && prepared?.voiceId === currentSpeechVoiceId();
+  }
+
+  const fetchSpeechAudio = async (text) => {
+    const provider = ttsConfig.provider;
+    const voiceId = currentSpeechVoiceId();
+    const response = await fetch(API_TTS_STREAM, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text, provider, voiceId }),
+    });
+    if (!response.ok) throw new Error("TTS 模型播报失败");
+    const audioBlob = await response.blob();
+    return {
+      text,
+      provider,
+      voiceId,
+      audioUrl: URL.createObjectURL(audioBlob),
+    };
+  };
+
+  const preloadNextSpeech = () => {
+    if (!voiceModeRef.current || typeof window === "undefined" || !ttsConfig.configured) return;
+    if (speechPreloadRef.current || speechPreloadPromiseRef.current) return;
+    const nextText = speechQueueRef.current[0];
+    if (!nextText) return;
+    const preloadToken = speechPreloadTokenRef.current;
+    const preloadPromise = fetchSpeechAudio(nextText)
+      .then((prepared) => {
+        if (speechPreloadTokenRef.current !== preloadToken || !voiceModeRef.current || !isCurrentSpeechRequest(prepared, nextText)) {
+          if (prepared?.audioUrl && typeof URL !== "undefined") URL.revokeObjectURL(prepared.audioUrl);
+          return null;
+        }
+        speechPreloadRef.current = prepared;
+        return prepared;
+      })
+      .catch(() => null)
+      .finally(() => {
+        if (speechPreloadPromiseRef.current === preloadPromise) speechPreloadPromiseRef.current = null;
+      });
+    speechPreloadPromiseRef.current = preloadPromise;
+  };
+
+  const takePreparedSpeech = async (text) => {
+    if (isCurrentSpeechRequest(speechPreloadRef.current, text)) {
+      const prepared = speechPreloadRef.current;
+      speechPreloadRef.current = null;
+      return prepared;
+    }
+
+    if (speechPreloadPromiseRef.current) {
+      const prepared = await speechPreloadPromiseRef.current;
+      if (isCurrentSpeechRequest(prepared, text)) {
+        speechPreloadRef.current = null;
+        return prepared;
+      }
+      if (prepared?.audioUrl && typeof URL !== "undefined") URL.revokeObjectURL(prepared.audioUrl);
+    }
+
+    return fetchSpeechAudio(text);
+  };
+
   const resumeListeningAfterSpeech = () => {
     if (!voiceModeRef.current) return;
     setTranscript("");
     setVoiceState("listening");
-    window.setTimeout(startListening, 250);
+    window.setTimeout(startListening, 120);
   };
 
   const playNextSpeech = async () => {
     if (!voiceModeRef.current || typeof window === "undefined") return;
-    if (speakingRef.current) return;
+    if (speakingRef.current) {
+      preloadNextSpeech();
+      return;
+    }
     const text = speechQueueRef.current.shift();
     if (!text) return;
 
@@ -802,37 +886,29 @@ function AiGuide({ vehicle, workflowBinding }) {
 
     speakingRef.current = true;
     setVoiceState("speaking");
+    let prepared = null;
     try {
-      const response = await fetch(API_TTS_STREAM, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          text,
-          provider: ttsConfig.provider,
-          voiceId: selectedVoiceId || ttsConfig.voiceId,
-        }),
-      });
-      if (!response.ok) throw new Error("TTS 模型播报失败");
-      const audioBlob = await response.blob();
-      const audioUrl = URL.createObjectURL(audioBlob);
-      const audio = new Audio(audioUrl);
+      prepared = await takePreparedSpeech(text);
+      const audio = new Audio(prepared.audioUrl);
       audioRef.current = audio;
       audio.onended = () => {
-        URL.revokeObjectURL(audioUrl);
+        URL.revokeObjectURL(prepared.audioUrl);
         speakingRef.current = false;
-        if (speechQueueRef.current.length) {
+        if (speechQueueRef.current.length || speechPreloadRef.current || speechPreloadPromiseRef.current) {
           void playNextSpeech();
           return;
         }
         if (!speechActiveRef.current) resumeListeningAfterSpeech();
       };
       audio.onerror = () => {
-        URL.revokeObjectURL(audioUrl);
+        URL.revokeObjectURL(prepared.audioUrl);
         speakingRef.current = false;
         if (!speechActiveRef.current) resumeListeningAfterSpeech();
       };
       await audio.play();
+      preloadNextSpeech();
     } catch {
+      if (prepared?.audioUrl && typeof URL !== "undefined") URL.revokeObjectURL(prepared.audioUrl);
       speakingRef.current = false;
       if (!speechActiveRef.current) resumeListeningAfterSpeech();
     }
@@ -861,6 +937,7 @@ function AiGuide({ vehicle, workflowBinding }) {
     if (nextQueue.length) {
       speechQueueRef.current.push(...nextQueue);
       playNextSpeech();
+      preloadNextSpeech();
     } else if (flush && !speakingRef.current && !speechActiveRef.current) {
       resumeListeningAfterSpeech();
     }
@@ -872,6 +949,7 @@ function AiGuide({ vehicle, workflowBinding }) {
     speechBufferRef.current = "";
     speechActiveRef.current = true;
     speakingRef.current = false;
+    clearSpeechPreload();
     window.speechSynthesis.cancel();
     try { audioRef.current?.pause?.(); } catch {}
     audioRef.current = null;
@@ -947,6 +1025,7 @@ function AiGuide({ vehicle, workflowBinding }) {
       speechBufferRef.current = "";
       speechActiveRef.current = false;
       speakingRef.current = false;
+      clearSpeechPreload();
       return;
     }
     setVoiceMode(true);
