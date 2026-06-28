@@ -8,6 +8,7 @@ import {
   Database,
   Mic,
   Plus,
+  RotateCcw,
   Save,
   Search,
   Trash2,
@@ -15,10 +16,14 @@ import {
   Upload,
   Volume2,
   X,
+  ZoomIn,
+  ZoomOut,
 } from "lucide-react";
 import "./styles.css";
 
 const STORAGE_KEY = "ev-trike-platform-config-v1";
+const UI_SCALE_KEY = "ev-trike-platform-ui-scale";
+const UI_SCALE_STEPS = [0.88, 0.94, 1, 1.06];
 const API_CATALOG = "/api/catalog";
 const API_RESET = "/api/reset";
 const API_AI_GUIDE_STREAM = "/api/ai-guide/stream";
@@ -349,12 +354,16 @@ function LogoMark() {
   );
 }
 
-function AppHeader({ mode, setMode, query, setQuery, apiStatus }) {
+function AppHeader({ mode, setMode, query, setQuery, apiStatus, uiScale, setUiScale }) {
   const statusCopy = {
     loading: "连接中",
     connected: "API已连接",
     local: "本地缓存",
   }[apiStatus];
+  const scaleIndex = UI_SCALE_STEPS.findIndex((step) => step === uiScale);
+  const zoomOut = () => setUiScale(UI_SCALE_STEPS[Math.max(0, scaleIndex - 1)]);
+  const zoomIn = () => setUiScale(UI_SCALE_STEPS[Math.min(UI_SCALE_STEPS.length - 1, scaleIndex + 1)]);
+  const resetZoom = () => setUiScale(1);
 
   return (
     <header className="app-header">
@@ -372,6 +381,18 @@ function AppHeader({ mode, setMode, query, setQuery, apiStatus }) {
           <Search size={18} />
           <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索产品" />
         </label>
+        <div className="zoom-control" aria-label="页面缩放">
+          <button onClick={zoomOut} disabled={scaleIndex <= 0} aria-label="缩小页面">
+            <ZoomOut size={16} />
+          </button>
+          <button className="zoom-reset" onClick={resetZoom} aria-label="还原页面缩放">
+            {Math.round(uiScale * 100)}%
+            <RotateCcw size={13} />
+          </button>
+          <button onClick={zoomIn} disabled={scaleIndex >= UI_SCALE_STEPS.length - 1} aria-label="放大页面">
+            <ZoomIn size={16} />
+          </button>
+        </div>
         <button className="user-pill">
           <span className="avatar">张</span>
           <span>
@@ -1630,6 +1651,10 @@ export function App() {
   const [query, setQuery] = useState("");
   const [apiStatus, setApiStatus] = useState("loading");
   const [difyWorkflows, setDifyWorkflows] = useState({ bindings: {} });
+  const [uiScale, setUiScaleState] = useState(() => {
+    const storedScale = Number(window.localStorage.getItem(UI_SCALE_KEY));
+    return UI_SCALE_STEPS.includes(storedScale) ? storedScale : 1;
+  });
   const [vehicles, setVehicles] = useState(() => {
     try {
       const saved = window.localStorage.getItem(STORAGE_KEY);
@@ -1639,6 +1664,11 @@ export function App() {
     }
   });
   const [selectedId, setSelectedId] = useState("tiger");
+
+  const setUiScale = (nextScale) => {
+    setUiScaleState(nextScale);
+    window.localStorage.setItem(UI_SCALE_KEY, String(nextScale));
+  };
 
   useEffect(() => {
     let ignore = false;
@@ -1822,8 +1852,23 @@ export function App() {
 
   return (
     <div className="tablet-shell">
-      <div className={`app-surface ${mode === "showroom" ? "showroom-surface" : "config-surface"}`}>
-        <AppHeader mode={mode} setMode={setMode} query={query} setQuery={setQuery} apiStatus={apiStatus} />
+      <div
+        className={`app-surface ${mode === "showroom" ? "showroom-surface" : "config-surface"}`}
+        style={{
+          "--ui-zoom": uiScale,
+          "--ui-zoom-width": `${100 / uiScale}vw`,
+          "--ui-zoom-height": `${100 / uiScale}vh`,
+        }}
+      >
+        <AppHeader
+          mode={mode}
+          setMode={setMode}
+          query={query}
+          setQuery={setQuery}
+          apiStatus={apiStatus}
+          uiScale={uiScale}
+          setUiScale={setUiScale}
+        />
         <div className={`workspace ${mode === "showroom" ? "showroom-workspace" : "config-workspace"}`}>
           {mode === "showroom" && (
             <Showroom
