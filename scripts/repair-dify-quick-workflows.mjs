@@ -85,6 +85,7 @@ const buildBasicAnswers = async (vehicle) => {
   const batteryFacts = await sectionFacts(vehicle.id, "电池系统");
   const shockFacts = await sectionFacts(vehicle.id, "减震系统");
   const speedFacts = await sectionFacts(vehicle.id, "速度性能");
+  const tireFacts = await sectionFacts(vehicle.id, "轮胎配置");
   const featureFacts = await sectionFacts(vehicle.id, "特色功能");
   const afterSaleFacts = await sectionFacts(vehicle.id, "售后保修");
   const complianceFacts = await sectionFacts(vehicle.id, "合规认证");
@@ -97,6 +98,7 @@ const buildBasicAnswers = async (vehicle) => {
     audience: `${vehicle.name}适合${sceneText(vehicle)}导购可以先问客户每天跑多远、坐几个人、路况怎么样，再对应推荐。`,
     shock: `${vehicle.name}的减震配置是${specValue(vehicle, "减震")}。${shockFacts.length ? `资料里还标注：${shockFacts.slice(0, 4).join("；")}。` : ""}门店讲法可以说：让客户现场坐一下、过个小坎感受，舒适性比单纯讲参数更直观。`,
     speed: `${vehicle.name}的最高时速是${specValue(vehicle, "速度") || factSentence(speedFacts)}。门店讲法可以说：这个速度主要是日常代步、接送孩子和买菜用，跑得稳比一味求快更重要，具体以实车和当地合规要求为准。`,
+    tire: `${vehicle.name}的轮胎资料是：${factSentence(tireFacts, specValue(vehicle, "轮胎") || "当前资料未标注轮胎配置")}。如果客户问轮胎品牌，只能按资料里明确写的讲；资料没有标品牌时，不要承诺具体品牌，建议以实车和厂家最新配置单为准。`,
     charging_cost: `${vehicle.name}充一次电多少钱，要看客户选择的电池容量和当地电价。当前资料标注：${factSentence(batteryFacts, `电压${specValue(vehicle, "电压")}`)}。门店不要直接报固定金额，可以按实车电池规格现场估算，给客户讲日常用电成本比较低，具体以当地电价为准。`,
     aftersale: `${vehicle.name}的售后口径是：${factSentence(afterSaleFacts)}。门店讲法可以说：先按厂家和门店最新保修政策说明，电池、核心部件和整车保修范围要以购车凭证和配置单为准。`,
     compliance: `${vehicle.name}的合规资料是：${factSentence(complianceFacts)}。门店讲法可以说：上牌、驾照和当地管理要求要看当地政策，建议按门店实车合格证和当地车管要求确认。`,
@@ -180,6 +182,8 @@ def main(results, query) -> dict:
         return {"can_direct": "true", "direct_answer": BASIC_ANSWERS.get("shock"), "score": 8}
     if any(word in raw_query for word in ["速度", "时速", "最高", "最快", "跑多快"]) and BASIC_ANSWERS.get("speed"):
         return {"can_direct": "true", "direct_answer": BASIC_ANSWERS.get("speed"), "score": 8}
+    if any(word in raw_query for word in ["轮胎", "胎", "真空胎", "轮子"]) and BASIC_ANSWERS.get("tire"):
+        return {"can_direct": "true", "direct_answer": BASIC_ANSWERS.get("tire"), "score": 8}
     if any(word in raw_query for word in ["充电多少钱", "充一次", "电费", "几度电", "一度电", "用车成本"]) and BASIC_ANSWERS.get("charging_cost"):
         return {"can_direct": "true", "direct_answer": BASIC_ANSWERS.get("charging_cost"), "score": 8}
     if any(word in raw_query for word in ["保修", "售后", "维修", "质保"]) and BASIC_ANSWERS.get("aftersale"):
