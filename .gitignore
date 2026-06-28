@@ -6,7 +6,3 @@ node_modules
 dist
 .npm-cache
 .DS_Store
-certs/*.pem
-certs/*.crt
-certs/*.key
-certs/*.cnf

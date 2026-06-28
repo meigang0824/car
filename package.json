@@ -9,8 +9,7 @@
     "api": "node server/server.mjs",
     "start": "node server/server.mjs",
     "build": "vite build",
-    "preview": "vite preview --host 0.0.0.0",
-    "cert:dev": "node scripts/generate-local-https-cert.mjs"
+    "preview": "vite preview --host 0.0.0.0"
   },
   "dependencies": {
     "@vitejs/plugin-react": "5.0.4",

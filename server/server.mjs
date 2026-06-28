@@ -166,17 +166,6 @@ const readJsonBody = async (request) => {
   return JSON.parse(Buffer.concat(chunks).toString("utf8"));
 };
 
-const readRawBody = async (request, maxBytes = 12 * 1024 * 1024) => {
-  const chunks = [];
-  let size = 0;
-  for await (const chunk of request) {
-    size += chunk.length;
-    if (size > maxBytes) throw new Error("音频文件太大，请缩短录音后再试");
-    chunks.push(chunk);
-  }
-  return Buffer.concat(chunks);
-};
-
 const readCatalog = async () => {
   try {
     const raw = await readFile(dataPath, "utf8");
@@ -749,12 +738,6 @@ const getTtsConfig = () => {
   };
 };
 
-const getAsrConfig = () => ({
-  provider: "siliconflow",
-  model: process.env.SILICONFLOW_ASR_MODEL || "FunAudioLLM/SenseVoiceSmall",
-  configured: Boolean(process.env.SILICONFLOW_ASR_API_KEY || process.env.SILICONFLOW_API_KEY),
-});
-
 const streamSiliconFlowTts = async ({ text, voiceId, apiKey, baseURL, model }) => {
   if (!apiKey) throw new Error("硅基流动 TTS 未配置 API Key");
   const selectedVoice = voiceId || "FunAudioLLM/CosyVoice2-0.5B:claire";
@@ -841,43 +824,6 @@ const streamOpenAITts = async ({ text, voiceId, apiKey, baseURL }) => {
   }
 
   return webStreamToNode(response.body);
-};
-
-const transcribeSiliconFlowAudio = async ({ audioBuffer, contentType }) => {
-  const apiKey = process.env.SILICONFLOW_ASR_API_KEY || process.env.SILICONFLOW_API_KEY;
-  if (!apiKey) throw new Error("语音输入未配置 SILICONFLOW_API_KEY");
-
-  const model = process.env.SILICONFLOW_ASR_MODEL || "FunAudioLLM/SenseVoiceSmall";
-  const baseURL = (process.env.SILICONFLOW_BASE_URL || "https://api.siliconflow.cn").replace(/\/$/, "");
-  const mimeType = contentType?.split(";")[0] || "audio/webm";
-  const extension = mimeType.includes("mp4") ? "m4a" : mimeType.includes("mpeg") ? "mp3" : mimeType.includes("wav") ? "wav" : "webm";
-  const formData = new FormData();
-  formData.append("model", model);
-  formData.append("file", new Blob([audioBuffer], { type: mimeType }), `voice-input.${extension}`);
-
-  const response = await fetch(`${baseURL}/v1/audio/transcriptions`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: formData,
-  });
-
-  const text = await response.text();
-  let data = {};
-  try {
-    data = text ? JSON.parse(text) : {};
-  } catch {
-    data = { text };
-  }
-
-  if (!response.ok) {
-    throw new Error(`语音识别失败 (${response.status}): ${text.slice(0, 240)}`);
-  }
-
-  const transcript = String(data.text || data.transcription || data.result?.text || "").trim();
-  if (!transcript) throw new Error("语音识别没有返回文字");
-  return transcript;
 };
 
 const streamModelTts = async ({ text, provider, voiceId }) => {
@@ -1459,11 +1405,6 @@ const server = createServer(async (request, response) => {
       return;
     }
 
-    if (request.method === "GET" && url.pathname === "/api/asr-config") {
-      send(response, 200, getAsrConfig());
-      return;
-    }
-
     if (request.method === "GET" && url.pathname === "/api/chat-history") {
       const vehicleId = url.searchParams.get("vehicleId") ?? "";
       const knowledgeSignature = url.searchParams.get("knowledgeSignature") ?? "";
@@ -1531,25 +1472,6 @@ const server = createServer(async (request, response) => {
       };
       await writeChatHistory(history);
       send(response, 200, history.vehicles[vehicleId]);
-      return;
-    }
-
-    if (request.method === "POST" && url.pathname === "/api/asr/transcribe") {
-      const audioBuffer = await readRawBody(request);
-      if (!audioBuffer.length) {
-        send(response, 400, { error: "audio is required" });
-        return;
-      }
-
-      try {
-        const text = await transcribeSiliconFlowAudio({
-          audioBuffer,
-          contentType: request.headers["content-type"] || "audio/webm",
-        });
-        send(response, 200, { text });
-      } catch (error) {
-        send(response, 500, { error: error.message });
-      }
       return;
     }
 
