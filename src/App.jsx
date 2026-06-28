@@ -964,7 +964,11 @@ function AiGuide({ vehicle, workflowBinding }) {
     isAskingRef.current = true;
     if (options.voice) beginStreamSpeech();
     setMessages((items) => {
-      return [...items, userMessage];
+      return [
+        ...items,
+        userMessage,
+        { id: streamMessageId, role: "ai", text: "正在思考中，稍等我整理一下资料...", pending: true, thinking: true },
+      ];
     });
     setDraft("");
 
@@ -983,7 +987,9 @@ function AiGuide({ vehicle, workflowBinding }) {
             }
 
             return items.map((item) =>
-              item.id === streamMessageId ? { ...item, text: `${item.text}${visibleDelta}` } : item
+              item.id === streamMessageId
+                ? { ...item, text: item.thinking ? visibleDelta : `${item.text}${visibleDelta}`, thinking: false }
+                : item
             );
           });
         },
@@ -1033,7 +1039,7 @@ function AiGuide({ vehicle, workflowBinding }) {
           <span>{normalizeKnowledgeName(workflowBinding?.knowledgeBases?.find((item) => item.type === "vehicle")?.datasetName, `${vehicle.name}专属知识库`)}</span>
         </div>
         {messages.map((msg, index) => (
-          <div key={`${msg.role}-${index}`} className={`message ${msg.role} ${msg.pending ? "pending" : ""}`}>
+          <div key={`${msg.role}-${index}`} className={`message ${msg.role} ${msg.pending ? "pending" : ""} ${msg.thinking ? "thinking" : ""} ${msg.error ? "error" : ""}`}>
             {msg.role === "ai" && <div className="mini-bot"><Bot size={16} /></div>}
             <div>
               {msg.role === "ai" && <strong>{vehicle.name}智能客服</strong>}

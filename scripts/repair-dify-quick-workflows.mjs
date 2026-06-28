@@ -176,7 +176,7 @@ def main(results, query) -> dict:
         return {"can_direct": "true", "direct_answer": BASIC_ANSWERS.get("motor"), "score": 8}
     if any(word in raw_query for word in ["续航", "跑多远", "能跑", "多少公里", "电池"]) and BASIC_ANSWERS.get("range"):
         return {"can_direct": "true", "direct_answer": BASIC_ANSWERS.get("range"), "score": 8}
-    if any(word in raw_query for word in ["适合", "客户", "人群", "场景", "推荐", "谁买"]) and BASIC_ANSWERS.get("audience"):
+    if any(word in raw_query for word in ["适合", "人群", "场景", "推荐", "谁买", "什么客户", "哪类客户", "哪些客户", "目标客户"]) and BASIC_ANSWERS.get("audience"):
         return {"can_direct": "true", "direct_answer": BASIC_ANSWERS.get("audience"), "score": 8}
     if any(word in raw_query for word in ["减震", "避震", "悬挂", "颠", "舒适"]) and BASIC_ANSWERS.get("shock"):
         return {"can_direct": "true", "direct_answer": BASIC_ANSWERS.get("shock"), "score": 8}

@@ -727,6 +727,18 @@ body {
   background: linear-gradient(180deg, #ffffff, #f7fbff);
 }
 
+.message.ai.thinking div:last-child {
+  color: #58708f;
+  border-color: #d6e6fb;
+  background: linear-gradient(180deg, #fafdff, #f1f7ff);
+}
+
+.message.ai.error div:last-child {
+  color: #8a3a3a;
+  border-color: #ffd7d7;
+  background: #fff8f8;
+}
+
 .message.ai.pending p::after {
   content: "";
   display: inline-block;

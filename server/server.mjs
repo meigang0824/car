@@ -15,7 +15,6 @@ const staticRoot = resolve(__dirname, "../dist");
 const envPath = resolve(__dirname, "../.env");
 const port = Number(process.env.API_PORT ?? 4174);
 const host = process.env.HOST ?? "127.0.0.1";
-const difyTimeoutMs = Number(process.env.DIFY_TIMEOUT_MS ?? 18000);
 
 const loadEnvFile = async () => {
   try {
@@ -35,6 +34,8 @@ const loadEnvFile = async () => {
 };
 
 await loadEnvFile();
+
+const difyTimeoutMs = Number(process.env.DIFY_TIMEOUT_MS ?? 60000);
 
 const jsonHeaders = {
   "Access-Control-Allow-Origin": "*",
