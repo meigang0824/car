@@ -123,6 +123,8 @@ body {
   background: transparent;
   border-radius: 10px;
   font-weight: 900;
+  min-width: 54px;
+  white-space: nowrap;
 }
 
 .mode-switch button.active {
@@ -3671,4 +3673,131 @@ body {
     flex: initial;
   }
 
+}
+
+/* Desktop workspace pass: keep the showroom as a stable three-column workbench.
+   Smaller viewports can scroll instead of forcing the layout into an iPad stack. */
+.app-surface.showroom-surface {
+  width: var(--ui-zoom-width, 100vw);
+  height: var(--ui-zoom-height, 100vh);
+  min-height: var(--ui-min-height, 760px);
+  overflow: auto;
+  grid-template-columns: minmax(0, 1fr);
+  transform: scale(var(--ui-zoom, 1));
+  transform-origin: 0 0;
+}
+
+.app-surface.showroom-surface .workspace,
+.app-surface.showroom-surface .showroom-workspace {
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  overflow: auto;
+}
+
+.app-surface.showroom-surface .showroom-workspace {
+  min-width: 1280px;
+  padding: 18px clamp(18px, 2vw, 28px) 28px;
+}
+
+.app-surface.showroom-surface .showroom-grid {
+  min-height: min(880px, calc(100vh - 98px));
+  grid-template-columns:
+    clamp(270px, 19vw, 300px)
+    minmax(500px, 1fr)
+    clamp(380px, 27vw, 430px);
+  gap: clamp(14px, 1.35vw, 20px);
+  overflow: visible;
+}
+
+.app-surface.showroom-surface .vehicle-rail,
+.app-surface.showroom-surface .stage-stack,
+.app-surface.showroom-surface .ai-panel {
+  min-width: 0;
+}
+
+.app-surface.showroom-surface .stage-panel {
+  grid-template-rows: auto minmax(240px, min(36vh, 380px)) auto auto;
+  align-content: start;
+}
+
+.app-surface.showroom-surface .product-canvas {
+  min-height: 240px;
+}
+
+.app-surface.showroom-surface .hero-sprite {
+  width: min(620px, 88%);
+  height: min(36vh, 380px);
+  min-height: 240px;
+}
+
+.app-surface.showroom-surface .thumb-strip {
+  justify-content: flex-start;
+}
+
+.app-surface.showroom-surface .spec-summary {
+  min-height: 154px;
+  grid-auto-rows: minmax(48px, auto);
+}
+
+.app-surface.showroom-surface .spec-summary div {
+  min-width: 0;
+  padding: 6px 12px;
+}
+
+.app-surface.showroom-surface .spec-summary strong {
+  margin-bottom: 2px;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+}
+
+.spec-summary span {
+  overflow-wrap: anywhere;
+}
+
+.app-surface.showroom-surface .spec-summary span {
+  font-size: 11px;
+  line-height: 1.18;
+  word-break: break-word;
+}
+
+.app-surface.showroom-surface .ai-panel {
+  height: 100%;
+  max-height: none;
+}
+
+.app-surface.showroom-surface .chat-log {
+  min-height: 220px;
+}
+
+.message.user div {
+  max-width: min(360px, 82%);
+}
+
+.message.ai div:last-child {
+  max-width: min(380px, 88%);
+}
+
+.quick-prompts {
+  min-width: 0;
+}
+
+@media (max-width: 1360px) {
+  .topbar {
+    grid-template-columns: minmax(220px, 280px) auto 112px minmax(140px, 1fr) 142px minmax(136px, 170px);
+    gap: 10px;
+    padding-inline: 20px;
+  }
+
+  .app-surface.showroom-surface .showroom-grid {
+    grid-template-columns: 260px minmax(500px, 1fr) 370px;
+  }
+
+  .vehicle-card {
+    grid-template-columns: 118px minmax(0, 1fr);
+  }
+
+  .vehicle-card .sprite {
+    width: 100%;
+  }
 }

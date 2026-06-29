@@ -1655,7 +1655,6 @@ export function App() {
     const storedScale = Number(window.localStorage.getItem(UI_SCALE_KEY));
     return UI_SCALE_STEPS.includes(storedScale) ? storedScale : 1;
   });
-  const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth || 1280);
   const [vehicles, setVehicles] = useState(() => {
     try {
       const saved = window.localStorage.getItem(STORAGE_KEY);
@@ -1670,8 +1669,6 @@ export function App() {
     setUiScaleState(nextScale);
     window.localStorage.setItem(UI_SCALE_KEY, String(nextScale));
   };
-  const showroomFitScale = Math.min(1, viewportWidth / 1180);
-  const showroomTransformScale = showroomFitScale * uiScale;
 
   useEffect(() => {
     let ignore = false;
@@ -1703,19 +1700,6 @@ export function App() {
     loadCatalog();
     return () => {
       ignore = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    const updateViewportWidth = () => {
-      setViewportWidth(window.visualViewport?.width ?? window.innerWidth ?? 1280);
-    };
-    updateViewportWidth();
-    window.addEventListener("resize", updateViewportWidth);
-    window.visualViewport?.addEventListener("resize", updateViewportWidth);
-    return () => {
-      window.removeEventListener("resize", updateViewportWidth);
-      window.visualViewport?.removeEventListener("resize", updateViewportWidth);
     };
   }, []);
 
@@ -1876,10 +1860,6 @@ export function App() {
           "--ui-zoom-width": `${100 / uiScale}vw`,
           "--ui-zoom-height": `${100 / uiScale}vh`,
           "--ui-min-height": `${760 / uiScale}px`,
-          "--showroom-width": `${1180 / uiScale}px`,
-          "--showroom-height": `${100 / showroomTransformScale}vh`,
-          "--showroom-min-height": `${760 / uiScale}px`,
-          "--showroom-transform": showroomTransformScale,
         }}
       >
         <AppHeader
