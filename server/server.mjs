@@ -864,9 +864,41 @@ const compactText = (value, maxLength = 180) =>
     .trim()
     .slice(0, maxLength);
 
+const numberOrUndefined = (value) => {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : undefined;
+};
+
+const extractUsage = (payload = {}, fallback = {}) => {
+  const usage =
+    payload?.metadata?.usage ??
+    payload?.data?.metadata?.usage ??
+    payload?.usage ??
+    payload?.data?.usage ??
+    {};
+  const promptTokens = numberOrUndefined(usage.prompt_tokens ?? usage.promptTokens);
+  const completionTokens = numberOrUndefined(usage.completion_tokens ?? usage.completionTokens);
+  const totalTokens = numberOrUndefined(
+    usage.total_tokens ??
+    usage.totalTokens ??
+    (promptTokens !== undefined || completionTokens !== undefined
+      ? (promptTokens ?? 0) + (completionTokens ?? 0)
+      : undefined)
+  );
+
+  return {
+    latency: numberOrUndefined(usage.latency ?? usage.elapsed_time ?? usage.elapsedTime ?? fallback.latency),
+    promptTokens,
+    completionTokens,
+    totalTokens,
+    totalPrice: numberOrUndefined(usage.total_price ?? usage.totalPrice),
+    currency: usage.currency ?? usage.currency_unit ?? usage.currencyUnit ?? "",
+  };
+};
+
 const buildTrace = ({ question, vehicle = {}, binding = {}, provider = "dify-chatflow", payload = {}, configured = false }) => {
   const resources = payload?.metadata?.retriever_resources ?? payload?.retriever_resources ?? [];
-  const usage = payload?.metadata?.usage ?? {};
+  const usage = extractUsage(payload);
   const knowledgeBases = Array.isArray(binding.knowledgeBases) ? binding.knowledgeBases : [];
   const trace = [
     {
@@ -1156,6 +1188,7 @@ const compactRepeatedAnswer = (current = "", next = "") => {
 };
 
 const runDifyWorkflowStream = async ({ question, vehicle }, config, binding, response) => {
+  const startedAt = Date.now();
   const difyQuestion = buildDifyQuestion(question, vehicle);
   const endpoint = config.workflowId
     ? `${config.apiBaseUrl}/workflows/${config.workflowId}/run`
@@ -1233,15 +1266,18 @@ const runDifyWorkflowStream = async ({ question, vehicle }, config, binding, res
     payload: payloadForTrace,
     configured: true,
   });
+  const usage = extractUsage(payloadForTrace, { latency: (Date.now() - startedAt) / 1000 });
   sendStream(response, "trace", { trace });
   sendStream(response, "done", {
     answer,
     workflowRunId,
     trace,
+    usage,
   });
 };
 
 const runDifyChatflowStream = async ({ question, vehicle, conversationId = "" }, config, binding, response) => {
+  const startedAt = Date.now();
   const difyQuestion = buildDifyQuestion(question, vehicle);
   const difyQuery = buildDifyQuery(question, vehicle);
   const payload = {
@@ -1324,12 +1360,14 @@ const runDifyChatflowStream = async ({ question, vehicle, conversationId = "" },
     payload: payloadForTrace,
     configured: true,
   });
+  const usage = extractUsage(payloadForTrace, { latency: (Date.now() - startedAt) / 1000 });
   sendStream(response, "trace", { trace });
   sendStream(response, "done", {
     answer,
     conversationId: nextConversationId,
     messageId,
     trace,
+    usage,
   });
 };
 

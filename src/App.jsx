@@ -156,6 +156,69 @@ const motorText = (vehicle) => {
   return value.includes("电机") ? value : `${value}电机`;
 };
 
+const extractPowerText = (value = "") => {
+  const text = String(value);
+  return text.match(/\d+\s?W/i)?.[0]?.replace(/\s+/g, "") ?? text;
+};
+
+const COLOR_SWATCHES = {
+  粉色: "#f6b8cb",
+  红色: "#c93f37",
+  紫色: "#b8a2e6",
+  金色: "#d8c08a",
+  绿色: "#b9d8bd",
+  米色: "#e7d9bd",
+  白色: "#f5f6f4",
+  黑色: "#262b32",
+  蓝色: "#4d8fd9",
+  灰色: "#b8c0c9",
+  银色: "#cfd6df",
+  黄色: "#efd36c",
+};
+
+const DEFAULT_COLOR_OPTIONS = ["白色", "黑色", "银色"].map((colorName) => ({
+  label: `${colorName}款`,
+  colorName,
+  index: null,
+}));
+
+const colorNameFromLabel = (label = "") =>
+  Object.keys(COLOR_SWATCHES).find((name) => String(label).includes(name));
+
+const colorOptionsFromSlides = (slides = []) =>
+  slides
+    .map((slide, index) => ({
+      ...slide,
+      index,
+      colorName: colorNameFromLabel(slide.label),
+    }))
+    .filter((slide) => slide.colorName && /款|色/.test(slide.label));
+
+const vehicleColorOptions = (slides = []) => {
+  const imageColorOptions = colorOptionsFromSlides(slides);
+  return imageColorOptions.length ? imageColorOptions : DEFAULT_COLOR_OPTIONS;
+};
+
+const extractMatchText = (value = "", pattern, fallback = "未配置") => {
+  const text = String(value || "").trim();
+  return text.match(pattern)?.[0]?.replace(/\s+/g, "") ?? (text || fallback);
+};
+
+const cleanSizeText = (value = "") =>
+  String(value || "")
+    .match(/\d+(?:\.\d+)?/g)
+    ?.slice(0, 3)
+    .join("×") || String(value || "未配置").replace(/\s+/g, "").replace(/[＊*]/g, "×");
+
+const basicVehicleSpecs = (vehicle) => [
+  ["速度", extractMatchText(specValue(vehicle, "速度", "25km/h"), /\d+(?:\.\d+)?\s?km\/h/i)],
+  ["电机功率", extractPowerText(specValue(vehicle, "电机", specValue(vehicle, "电机功率", "未配置")))],
+  ["载重", extractMatchText(specValue(vehicle, "重量", specValue(vehicle, "载重", "未配置")), /\d+(?:\.\d+)?\s?kg/i)],
+  ["电压", extractMatchText(specValue(vehicle, "电压", "未配置"), /\d+(?:\.\d+)?\s?V/i)],
+  ["轮胎", specValue(vehicle, "轮胎", "未配置")],
+  ["尺寸(mm)", cleanSizeText(specValue(vehicle, "尺寸", "未配置"))],
+];
+
 const renderMessageText = (text) =>
   String(text).split(/(\*\*[^*]+\*\*)/g).map((part, index) => {
     if (part.startsWith("**") && part.endsWith("**")) {
@@ -164,6 +227,43 @@ const renderMessageText = (text) =>
 
     return part;
   });
+
+const numberOrNull = (value) => {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+};
+
+const buildReplyMetrics = (usage = {}, durationMs = 0) => {
+  const promptTokens = numberOrNull(usage.promptTokens ?? usage.prompt_tokens);
+  const completionTokens = numberOrNull(usage.completionTokens ?? usage.completion_tokens);
+  const totalTokens = numberOrNull(
+    usage.totalTokens ??
+    usage.total_tokens ??
+    (promptTokens !== null || completionTokens !== null ? (promptTokens ?? 0) + (completionTokens ?? 0) : null)
+  );
+  const latencySeconds = numberOrNull(usage.latency);
+  return {
+    durationMs: Math.max(0, Math.round(durationMs || (latencySeconds ? latencySeconds * 1000 : 0))),
+    latencySeconds,
+    promptTokens,
+    completionTokens,
+    totalTokens,
+    totalPrice: numberOrNull(usage.totalPrice ?? usage.total_price),
+    currency: usage.currency ?? "",
+  };
+};
+
+const formatReplyMetrics = (metrics) => {
+  if (!metrics) return "";
+  const duration = metrics.durationMs ? `${(metrics.durationMs / 1000).toFixed(1)}s` : "未知";
+  const token = metrics.totalTokens !== null && metrics.totalTokens !== undefined
+    ? `${metrics.totalTokens} tokens`
+    : "Token 未返回";
+  const detail = metrics.promptTokens !== null || metrics.completionTokens !== null
+    ? `输入 ${metrics.promptTokens ?? "-"} / 输出 ${metrics.completionTokens ?? "-"}`
+    : "";
+  return [`耗时 ${duration}`, token, detail].filter(Boolean).join(" · ");
+};
 
 const vehicleKnowledgeSignature = (vehicle = {}) => {
   const payload = JSON.stringify({
@@ -406,10 +506,45 @@ function AppHeader({ mode, setMode, query, setQuery, apiStatus, uiScale, setUiSc
   );
 }
 
-function VehicleRail({ vehicles, selectedId, onSelect }) {
+function VehicleRail({ vehicles, selectedId, onSelect, collapsed, onToggle }) {
   return (
-    <aside className="vehicle-rail glass-panel">
-      <div className="panel-title">全部车型</div>
+    <aside className={`vehicle-rail glass-panel ${collapsed ? "collapsed" : ""}`}>
+      <div className="rail-head">
+        <div className="panel-title">全部车型</div>
+        <button
+          className="panel-collapse-btn"
+          onClick={onToggle}
+          aria-label={collapsed ? "展开车型列表" : "折叠车型列表"}
+          title={collapsed ? "展开车型列表" : "折叠车型列表"}
+        >
+          {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+        </button>
+      </div>
+      {collapsed && (
+        <div className="collapsed-vehicle-dock" aria-label="折叠车型列表">
+          <button
+            className="collapsed-panel-icon"
+            onClick={onToggle}
+            aria-label="打开车型侧栏"
+            title="展开车型列表"
+          >
+            <ChevronRight size={20} />
+          </button>
+          <div className="collapsed-vehicle-thumbs">
+            {vehicles.map((vehicle) => (
+              <button
+                key={vehicle.id}
+                className={`collapsed-vehicle-thumb ${selectedId === vehicle.id ? "selected" : ""}`}
+                onClick={() => onSelect(vehicle.id)}
+                aria-label={`切换到${vehicle.name}`}
+                title={vehicle.name}
+              >
+                <ProductSprite src={vehicle.images[0]?.src} alt={vehicle.name} tone={vehicle.color} />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       <div className="vehicle-list">
         {vehicles.map((vehicle) => (
           <button
@@ -435,15 +570,18 @@ function ProductStage({ vehicle }) {
     ...vehicle.images,
   ];
   const [slideIndex, setSlideIndex] = useState(0);
+  const [selectedColor, setSelectedColor] = useState("");
   const [dragStart, setDragStart] = useState(null);
   const activeIndex = Math.min(slideIndex, slides.length - 1);
   const activeSlide = slides[activeIndex];
+  const colorOptions = vehicleColorOptions(slides);
   const nextSlide = () => setSlideIndex((index) => (index + 1) % slides.length);
   const prevSlide = () => setSlideIndex((index) => (index - 1 + slides.length) % slides.length);
 
   useEffect(() => {
     setSlideIndex(0);
-  }, [vehicle.id]);
+    setSelectedColor(vehicleColorOptions(vehicle.images)[0]?.label ?? "");
+  }, [vehicle.id, vehicle.images]);
   const finishDrag = (clientX) => {
     if (dragStart === null) return;
     const delta = clientX - dragStart;
@@ -464,6 +602,25 @@ function ProductStage({ vehicle }) {
                 {tag}
               </span>
             ))}
+            {colorOptions.length > 0 && (
+              <div className="color-spec-row inline" aria-label="颜色规格">
+                {colorOptions.map((option) => (
+                  <button
+                    key={`${option.label}-${option.src ?? "default"}-${option.index ?? "color"}`}
+                    className={(option.index === activeIndex || selectedColor === option.label) ? "active" : ""}
+                    onClick={() => {
+                      setSelectedColor(option.label);
+                      if (Number.isInteger(option.index)) setSlideIndex(option.index);
+                    }}
+                    aria-label={`切换${option.label}`}
+                    title={option.label}
+                  >
+                    <i style={{ backgroundColor: COLOR_SWATCHES[option.colorName] }} />
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           <p>{vehicle.slogan}</p>
         </div>
@@ -500,10 +657,10 @@ function ProductStage({ vehicle }) {
       </div>
 
       <div className="spec-summary">
-        {vehicle.specs.map(([label, value]) => (
+        {basicVehicleSpecs(vehicle).map(([label, value]) => (
           <div key={label}>
-            <strong>{label}</strong>
             <span>{value}</span>
+            <strong>{label}</strong>
           </div>
         ))}
       </div>
@@ -511,7 +668,7 @@ function ProductStage({ vehicle }) {
   );
 }
 
-function AiGuide({ vehicle, workflowBinding }) {
+function AiGuide({ vehicle, workflowBinding, collapsed, onToggle }) {
   const introMessages = (currentVehicle) => [
     {
       role: "ai",
@@ -699,9 +856,11 @@ function AiGuide({ vehicle, workflowBinding }) {
   ];
 
   const requestGuideAnswer = async (question, handlers = {}) => {
+    const startedAt = performance.now();
     let answer = "";
     let trace = localTrace(question, true);
     let nextConversationId = "";
+    let usage = {};
 
     try {
       const response = await fetch(API_AI_GUIDE_STREAM, {
@@ -742,6 +901,7 @@ function AiGuide({ vehicle, workflowBinding }) {
           answer = data.answer || answer;
           trace = Array.isArray(data.trace) ? data.trace : trace;
           nextConversationId = data.conversationId ?? nextConversationId;
+          usage = data.usage ?? usage;
           return;
         }
 
@@ -764,6 +924,7 @@ function AiGuide({ vehicle, workflowBinding }) {
         answer,
         conversationId: nextConversationId,
         trace: trace.length ? trace : localTrace(question),
+        metrics: buildReplyMetrics(usage, performance.now() - startedAt),
       };
     } catch (error) {
       error.partialAnswer = answer;
@@ -1099,8 +1260,8 @@ function AiGuide({ vehicle, workflowBinding }) {
       setMessages((items) => {
         const exists = items.some((item) => item.id === streamMessageId);
         const next = exists
-          ? items.map((item) => item.id === streamMessageId ? { role: "ai", text: result.answer } : item)
-          : [...items, { role: "ai", text: result.answer }];
+          ? items.map((item) => item.id === streamMessageId ? { role: "ai", text: result.answer, metrics: result.metrics } : item)
+          : [...items, { role: "ai", text: result.answer, metrics: result.metrics }];
         saveChatHistory(next, nextConversationId);
         return next;
       });
@@ -1122,7 +1283,17 @@ function AiGuide({ vehicle, workflowBinding }) {
   };
 
   return (
-    <aside className="ai-panel glass-panel" data-vehicle-id={vehicle.id}>
+    <aside className={`ai-panel glass-panel ${collapsed ? "collapsed" : ""}`} data-vehicle-id={vehicle.id}>
+      {collapsed && (
+        <button
+          className="collapsed-ai-btn"
+          onClick={onToggle}
+          aria-label="展开智能客服"
+          title="展开智能客服"
+        >
+          <Bot size={24} />
+        </button>
+      )}
       <div className="ai-head">
         <div className="bot-avatar"><Bot size={24} /></div>
         <div>
@@ -1131,7 +1302,13 @@ function AiGuide({ vehicle, workflowBinding }) {
           <em>{workflowBinding?.configured ? "专属知识库已接入" : "智能客服未配置"}</em>
         </div>
         <button aria-label="语音音量"><Volume2 size={19} /></button>
-        <button aria-label="关闭智能客服"><X size={21} /></button>
+        <button
+          aria-label={collapsed ? "展开智能客服" : "折叠智能客服"}
+          title={collapsed ? "展开智能客服" : "折叠智能客服"}
+          onClick={onToggle}
+        >
+          {collapsed ? <ChevronLeft size={21} /> : <ChevronRight size={21} />}
+        </button>
       </div>
       <div className="chat-log" ref={chatLogRef}>
         <div className="chat-context">
@@ -1144,6 +1321,9 @@ function AiGuide({ vehicle, workflowBinding }) {
             <div>
               {msg.role === "ai" && <strong>{vehicle.name}智能客服</strong>}
               <p>{renderMessageText(msg.text)}</p>
+              {msg.role === "ai" && msg.metrics && !msg.pending && (
+                <small className="message-metrics">{formatReplyMetrics(msg.metrics)}</small>
+              )}
               {msg.time && <time>{msg.time}</time>}
             </div>
           </div>
@@ -1223,6 +1403,8 @@ function AiGuide({ vehicle, workflowBinding }) {
 }
 
 function Showroom({ vehicles, selectedId, setSelectedId, query, difyWorkflows }) {
+  const [vehicleRailCollapsed, setVehicleRailCollapsed] = useState(false);
+  const [aiPanelCollapsed, setAiPanelCollapsed] = useState(false);
   const keyword = query.trim().toLowerCase();
   const filteredVehicles = keyword
     ? vehicles.filter((item) =>
@@ -1242,8 +1424,14 @@ function Showroom({ vehicles, selectedId, setSelectedId, query, difyWorkflows })
   }
 
   return (
-    <div className="showroom-grid">
-      <VehicleRail vehicles={filteredVehicles} selectedId={vehicle.id} onSelect={setSelectedId} />
+    <div className={`showroom-grid ${vehicleRailCollapsed ? "rail-collapsed" : ""} ${aiPanelCollapsed ? "ai-collapsed" : ""}`}>
+      <VehicleRail
+        vehicles={filteredVehicles}
+        selectedId={vehicle.id}
+        onSelect={setSelectedId}
+        collapsed={vehicleRailCollapsed}
+        onToggle={() => setVehicleRailCollapsed((value) => !value)}
+      />
       <div className="stage-stack">
         <ProductStage vehicle={vehicle} />
       </div>
@@ -1251,6 +1439,8 @@ function Showroom({ vehicles, selectedId, setSelectedId, query, difyWorkflows })
         key={vehicle.id}
         vehicle={vehicle}
         workflowBinding={difyWorkflows.bindings?.[vehicle.id]}
+        collapsed={aiPanelCollapsed}
+        onToggle={() => setAiPanelCollapsed((value) => !value)}
       />
     </div>
   );
